@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-function App() {
+export default function App() {
+  const [count, setCount] = useState(0);
+
   return (
-    <div className="App">
+    <div style={{ textAlign: 'center', padding: '20px' }}>
       <h1>벨라와 로이의 냥이 케어 앱</h1>
-      <p>드디어 연결 성공했습니다!</p>
+      <p>오늘 밥 준 횟수: {count}번</p>
+      <button onClick={() => setCount(count + 1)}>
+        밥 줌!
+      </button>
     </div>
   );
 }
-
-export default App;
