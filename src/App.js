@@ -11,7 +11,8 @@ const Icons = {
   PhotoLibrary: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
   Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
   Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
-  Restore: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+  Restore: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>,
+  Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
 };
 
 export default function App() {
@@ -26,12 +27,10 @@ export default function App() {
   const [birthDates, setBirthDates] = useState({ "벨라": "2024-01-20", "로이": "2025-12-10" });
   const [isAlbumEditMode, setIsAlbumEditMode] = useState(false);
   
-  // 📅 전체 달력 탭용 선택 날짜 상태
   const [dashboardDate, setDashboardDate] = useState(getTodayDateString());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   const [dashMonth, setDashMonth] = useState(new Date().getMonth() + 1);
 
-  // 🗑 휴지통 상태 관리
   const [trashBin, setTrashBin] = useState([]);
 
   const [careItems, setCareItems] = useState({
@@ -48,16 +47,26 @@ export default function App() {
   });
 
   const [careRecords, setCareRecords] = useState({ "벨라": {}, "로이": {} });
-  const [expenses, setExpenses] = useState([{ id: "exp-1", detail: "벨라 간식 캔", amount: 14500 }]);
-  const [schedules, setSchedules] = useState([{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]);
+  
+  // 💰 지출 내역 데이터에 date 추가 (기본값 오늘)
+  const [expenses, setExpenses] = useState([
+    { id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 캔", amount: 14500 }
+  ]);
+  
+  const [schedules, setSchedules] = useState([
+    { id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }
+  ]);
+  
+  // 📸 앨범 데이터 고도화 (파일 주소뿐만 아니라 동영상 여부, 날짜, 위치 정보를 객체로 저장)
   const [albums, setAlbums] = useState({ "벨라": [], "로이": [] });
+  const [selectedMedia, setSelectedMedia] = useState(null); // 클릭 시 상세정보 모달용
 
   const [activeTracker, setActiveTracker] = useState(null);
   const [trackerDate, setTrackerDate] = useState(getTodayDateString());
   const [trackerInputAmount, setTrackerInputAmount] = useState('');
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null });
-  const [formData, setFormData] = useState({ title: '', amount: '', date: '', time: '', unit: '', icon: '' });
+  const [formData, setFormData] = useState({ title: '', amount: '', date: getTodayDateString(), time: '', unit: '', icon: '', location: '우리집 🏠' });
 
   const getAge = (dateStr) => {
     const birth = new Date(dateStr);
@@ -80,7 +89,6 @@ export default function App() {
     return `D+${daysSince}일 / 생일 D-${daysUntil}`;
   };
 
-  // 🗑 휴지통으로 항목 이동시키는 범용 함수
   const sendToTrash = (type, label, originalData, deleteAction) => {
     const trashItem = {
       id: Date.now().toString(),
@@ -94,7 +102,6 @@ export default function App() {
     deleteAction();
   };
 
-  // 🔄 휴지통 복구 기능
   const restoreFromTrash = (id) => {
     const item = trashBin.find(t => t.id === id);
     if (!item) return;
@@ -108,7 +115,7 @@ export default function App() {
       setCareItems({ ...careItems, [cat]: [...careItems[cat], item.originalData.data] });
     } else if (item.type === 'album') {
       const cat = item.originalData.cat;
-      setAlbums({ ...albums, [cat]: [...albums[cat], item.originalData.src] });
+      setAlbums({ ...albums, [cat]: [...albums[cat], item.originalData] });
     }
     setTrashBin(trashBin.filter(t => t.id !== id));
   };
@@ -122,27 +129,24 @@ export default function App() {
     }
   };
 
-  const handleAlbumUpload = (e) => {
+  // 📸 통합 파일/미디어 업로드 처리기 (사진, 동영상 모두 대응)
+  const handleMediaUpload = (e, locationStr = "우리집 🏠") => {
     const file = e.target.files[0];
     if (file) {
+      const isVideo = file.type.startsWith('video/');
       const reader = new FileReader();
-      reader.onload = (event) => setAlbums({ ...albums, [currentCat]: [...albums[currentCat], event.target.result] });
+      reader.onload = (event) => {
+        const newMedia = {
+          id: Date.now().toString(),
+          src: event.target.result,
+          isVideo: isVideo,
+          date: getTodayDateString(),
+          location: locationStr
+        };
+        setAlbums({ ...albums, [currentCat]: [...albums[currentCat], newMedia] });
+      };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleAddRecord = (amount) => {
-    const numAmount = Number(amount);
-    if (!numAmount || numAmount <= 0) return;
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const newRecords = { ...careRecords };
-    if (!newRecords[currentCat]) newRecords[currentCat] = {};
-    if (!newRecords[currentCat][activeTracker.id]) newRecords[currentCat][activeTracker.id] = {};
-    if (!newRecords[currentCat][activeTracker.id][trackerDate]) newRecords[currentCat][activeTracker.id][trackerDate] = [];
-    newRecords[currentCat][activeTracker.id][trackerDate].push({ amount: numAmount, time: timeStr });
-    setCareRecords(newRecords);
-    setTrackerInputAmount('');
   };
 
   const renderTab0 = () => (
@@ -222,7 +226,7 @@ export default function App() {
         })}
       </div>
       <div className="p-4 shrink-0 border-t border-gray-100 bg-white">
-        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: '', time: '', unit: '회', icon: '✨' }); }} className="w-full py-3.5 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm transition-colors flex justify-center items-center gap-2 text-[15px]"><span className="text-xl leading-none">+</span> 새로운 케어 항목 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '', unit: '회', icon: '✨' }); }} className="w-full py-3.5 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm transition-colors flex justify-center items-center gap-2 text-[15px]"><span className="text-xl leading-none">+</span> 새로운 케어 항목 추가</button>
       </div>
     </div>
   );
@@ -237,7 +241,15 @@ export default function App() {
         <div className="space-y-2 mb-3">
           {expenses.map((exp, i) => (
             <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <div><p className="font-bold text-gray-800 text-sm">{exp.detail}</p><p className="text-xs text-gray-500">{exp.amount.toLocaleString()}원</p></div>
+              <div className="flex gap-3 items-center">
+                <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">
+                  {exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800 text-sm">{exp.detail}</p>
+                  <p className="text-xs text-gray-500">{exp.amount.toLocaleString()}원</p>
+                </div>
+              </div>
               <button 
                 onClick={() => sendToTrash('expense', exp.detail, exp, () => {
                   const newExp = [...expenses]; newExp.splice(i, 1); setExpenses(newExp);
@@ -250,7 +262,7 @@ export default function App() {
           ))}
           {expenses.length === 0 && <p className="text-center text-sm text-gray-400 py-4">지출 내역이 없습니다.</p>}
         </div>
-        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: '', time: '', unit: '', icon: '' }); }} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg text-sm transition-colors">+ 지출 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '', unit: '', icon: '' }); }} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg text-sm transition-colors">+ 지출 추가</button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -296,7 +308,6 @@ export default function App() {
     </div>
   );
 
-  // 📅 새로운 전체일정 달력 보기 탭
   const renderTab2 = () => {
     const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay();
     const daysInMonth = new Date(dashYear, dashMonth, 0).getDate();
@@ -373,22 +384,37 @@ export default function App() {
   const renderTab3 = () => (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="w-full p-3 bg-[#E8F8F5] border-b border-teal-100 flex justify-between items-center px-4">
-        <p className="font-bold text-teal-700">보관된 사진: {albums[currentCat].length}장</p>
+        <p className="font-bold text-teal-700">보관된 미디어: {albums[currentCat].length}개</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">
         {albums[currentCat].length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60"><Icons.PhotoLibrary /><p className="text-sm font-bold">아직 추가된 사진이 없어요!</p></div>
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60"><Icons.PhotoLibrary /><p className="text-sm font-bold">아직 추가된 사진/동영상이 없어요!</p></div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
-            {albums[currentCat].map((src, i) => (
-              <div key={i} className="aspect-square relative bg-gray-100 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                <img src={src} alt="cat" className="w-full h-full object-cover" />
+            {albums[currentCat].map((item, i) => (
+              <div 
+                key={item.id || i} 
+                onClick={() => { if(!isAlbumEditMode) setSelectedMedia(item); }}
+                className="aspect-square relative bg-gray-100 rounded-xl border border-gray-200 overflow-hidden shadow-sm cursor-pointer group"
+              >
+                {item.isVideo ? (
+                  <div className="w-full h-full relative flex items-center justify-center bg-black">
+                    <video src={item.src} className="w-full h-full object-cover" muted playsInline />
+                    <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded font-black">🎬 VIDEO</span>
+                  </div>
+                ) : (
+                  <img src={item.src} alt="cat" className="w-full h-full object-cover" />
+                )}
+                
                 {isAlbumEditMode && (
                   <button 
-                    onClick={() => sendToTrash('album', `${currentCat} 사진`, { cat: currentCat, src, index: i }, () => {
-                      const newAlbums = {...albums}; newAlbums[currentCat].splice(i, 1); setAlbums(newAlbums);
-                    })}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendToTrash('album', `${currentCat} 미디어`, item, () => {
+                        const newAlbums = {...albums}; newAlbums[currentCat].splice(i, 1); setAlbums(newAlbums);
+                      });
+                    }}
                     className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors z-10"
                   >
                     <Icons.Close />
@@ -400,44 +426,42 @@ export default function App() {
         )}
       </div>
 
-      <div className="p-4 flex gap-2 border-t border-gray-100 bg-white">
-        <label className="flex-1 py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm transition-colors flex justify-center items-center gap-2 cursor-pointer">
-          <Icons.AddPhoto /> 앨범에서 찾기
-          <input type="file" accept="image/*" onChange={handleAlbumUpload} className="hidden" />
-        </label>
-        <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-5 py-3 font-bold rounded-xl shadow-sm transition-colors ${isAlbumEditMode ? 'bg-red-400 text-white hover:bg-red-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isAlbumEditMode ? '완료' : '수정'}</button>
+      {/* 📸 카메라 연동 파일 업로드 바 수정 */}
+      <div className="p-4 flex flex-col gap-2 border-t border-gray-100 bg-white">
+        <div className="flex gap-2">
+          <label className="flex-1 py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm transition-colors flex justify-center items-center gap-2 cursor-pointer text-sm">
+            <Icons.PhotoLibrary /> 파일 및 앨범 선택
+            <input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+          </label>
+          <label className="flex-1 py-3 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-xl shadow-sm transition-colors flex justify-center items-center gap-2 cursor-pointer text-sm">
+            <Icons.Camera /> 직접 촬영하기
+            {/* capture 속성으로 스마트폰 카메라 직접 호출 */}
+            <input type="file" accept="image/*,video/*" capture="environment" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+          </label>
+        </div>
+        <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`w-full py-2 font-bold rounded-xl text-xs transition-colors ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '편집 완료' : '미디어 삭제/수정'}</button>
       </div>
     </div>
   );
 
-  // 🗑 새로운 휴지통 폴더 탭
   const renderTab4 = () => (
     <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2>
         <button onClick={() => setTrashBin([])} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button>
       </div>
-      
       {trashBin.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-2 py-12">
-          <Icons.Trash />
-          <p className="text-sm font-bold">휴지통이 비어있습니다.</p>
-        </div>
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-2 py-12"><Icons.Trash /><p className="text-sm font-bold">휴지통이 비어있습니다.</p></div>
       ) : (
         <div className="space-y-3">
           {trashBin.map((item) => (
             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded mr-1.5">{item.type === 'schedule' ? '일정' : item.type === 'expense' ? '지출' : item.type === 'careItem' ? '케어' : '사진'}</span>
+                <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded mr-1.5">{item.type === 'schedule' ? '일정' : item.type === 'expense' ? '지출' : item.type === 'careItem' ? '케어' : '미디어'}</span>
                 <p className="text-sm font-bold text-gray-800 inline-block">{item.label}</p>
                 <p className="text-[11px] text-red-400 font-bold mt-1">⏳ 자동 삭제까지 {item.daysLeft}일 남음</p>
               </div>
-              <button 
-                onClick={() => restoreFromTrash(item.id)}
-                className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-              >
-                <Icons.Restore /> 복구
-              </button>
+              <button onClick={() => restoreFromTrash(item.id)} className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"><Icons.Restore /> 복구</button>
             </div>
           ))}
         </div>
@@ -453,15 +477,28 @@ export default function App() {
     if (modalState.type === 'schedule') title = `일정 추가`;
     if (modalState.type === 'editSchedule') title = `일정 수정`;
     if (modalState.type === 'editProfile') title = `프로필 수정`;
+    if (modalState.type === 'addMediaFile') title = `미디어 정보 등록 위치`;
 
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-[320px] shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-bold text-lg text-gray-800">{title}</h3></div>
           <div className="p-5 space-y-3">
+            {modalState.type === 'addMediaFile' && (
+              <>
+                <p className="text-xs font-bold text-gray-500">📸 촬영/업로드 위치 입력</p>
+                <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A3E4D7] text-sm" />
+              </>
+            )}
             {modalState.type === 'editProfile' && (
               <>
                 <p className="text-xs font-bold text-gray-500 mb-1">생년월일 변경</p>
+                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A3E4D7] text-sm" />
+              </>
+            )}
+            {modalState.type === 'expense' && (
+              <>
+                <p className="text-xs font-bold text-gray-500">📅 구입 날짜 선택</p>
                 <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A3E4D7] text-sm" />
               </>
             )}
@@ -486,7 +523,7 @@ export default function App() {
                 ))}
               </div>
             )}
-            {modalState.type !== 'editProfile' && (
+            {modalState.type !== 'editProfile' && modalState.type !== 'addMediaFile' && (
               <input type="text" placeholder="내용을 입력하세요" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A3E4D7] text-sm" />
             )}
             {modalState.type === 'careItem' && (
@@ -497,16 +534,18 @@ export default function App() {
             )}
           </div>
           <div className="px-5 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-            <button onClick={() => setModalState({ isOpen: false, type: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">취소</button>
+            <button onClick={() => setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">취소</button>
             <button onClick={() => {
-              if (modalState.type === 'editProfile' && formData.date) setBirthDates({...birthDates, [currentCat]: formData.date});
+              if (modalState.type === 'addMediaFile' && modalState.fileEvent) {
+                handleMediaUpload(modalState.fileEvent, formData.location);
+              } else if (modalState.type === 'editProfile' && formData.date) setBirthDates({...birthDates, [currentCat]: formData.date});
               else if (modalState.type === 'careItem' && formData.title) setCareItems({...careItems, [currentCat]: [...careItems[currentCat], {id: Date.now().toString(), ...formData}]});
-              else if (modalState.type === 'expense' && formData.title && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), detail: formData.title, amount: Number(formData.amount) }]);
+              else if (modalState.type === 'expense' && formData.title && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), date: formData.date, detail: formData.title, amount: Number(formData.amount) }]);
               else if (modalState.type === 'schedule' && formData.title) setSchedules([...schedules, { id: Date.now().toString(), cat: formData.cat || currentCat, date: formData.date, time: formData.time, title: formData.title }]);
               else if (modalState.type === 'editSchedule') {
                 setSchedules(schedules.map(s => s.id === modalState.targetId ? { ...s, title: formData.title, date: formData.date, time: formData.time, cat: formData.cat } : s));
               }
-              setModalState({ isOpen: false, type: null, targetId: null });
+              setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null });
             }} className="px-4 py-2 text-sm font-bold bg-[#A3E4D7] text-gray-800 hover:bg-[#8fd9cb] rounded-lg transition-colors">
               저장
             </button>
@@ -587,6 +626,40 @@ export default function App() {
     );
   };
 
+  // ℹ️ 앨범 단일 아이템 클릭 시 정보 노출 상세 팝업창 모달 컴포넌트
+  const renderMediaDetailModal = () => {
+    if (!selectedMedia) return null;
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+          <div className="p-3 border-b flex justify-between items-center bg-gray-50">
+            <span className="font-bold text-xs text-teal-600">📌 미디어 등록 상세 정보</span>
+            <button onClick={() => setSelectedMedia(null)} className="p-1 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700"><Icons.Close /></button>
+          </div>
+          
+          <div className="flex-1 bg-black max-h-[400px] flex items-center justify-center overflow-hidden">
+            {selectedMedia.isVideo ? (
+              <video src={selectedMedia.src} className="w-full h-full object-contain" controls autoPlay playsInline />
+            ) : (
+              <img src={selectedMedia.src} alt="detail" className="w-full h-full object-contain" />
+            )}
+          </div>
+
+          <div className="p-4 bg-white border-t border-gray-100 space-y-2">
+            <div className="flex justify-between items-center text-sm border-b pb-1.5 border-dashed">
+              <span className="text-gray-400 font-medium">📆 촬영 / 업로드 날짜</span>
+              <span className="text-gray-800 font-bold">{selectedMedia.date}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-400 font-medium">📍 미디어 촬영 정보 위치</span>
+              <span className="text-teal-600 font-extrabold">{selectedMedia.location || "우리집 🏠"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const tabs = [renderTab0(), renderTab1(), renderTab2(), renderTab3(), renderTab4()];
 
   return (
@@ -594,7 +667,6 @@ export default function App() {
       <div className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900">
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
         
-        {/* 하단 모바일 내비게이션 바 (총 5개 메뉴 배치) */}
         <div className="flex justify-around items-center bg-white border-t border-gray-200 pb-safe pt-2 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0 h-16">
           {[
             { icon: <Icons.CheckSquare />, label: "오늘 케어" },
@@ -610,6 +682,7 @@ export default function App() {
         </div>
         {renderModal()}
         {renderTrackerScreen()}
+        {renderMediaDetailModal()}
       </div>
     </div>
   );
