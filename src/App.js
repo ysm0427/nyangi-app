@@ -13,7 +13,8 @@ const Icons = {
   Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
   Restore: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>,
   Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>,
-  Code: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+  Code: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>,
+  Card: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
 };
 
 const COLOR_MAP = {
@@ -21,7 +22,6 @@ const COLOR_MAP = {
   green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500'
 };
 
-// 팩토리형 확장 이모티콘 셋 (위생, 식단, 건강, 훈련 분야별 총 33종 아카이빙)
 const EXPANDED_EMOJIS = [
   "✨", "💧", "🥣", "💊", "🪮", "⚖️", "🧸", "🏥", "🐾", "🚿", 
   "✂️", "🥩", "🐟", "🍼", "🦷", "👁️", "👂", "🩹", "🧻", "💩", 
@@ -45,6 +45,7 @@ export default function App() {
   const [profilePics, setProfilePics] = useState({});
   const [isAlbumEditMode, setIsAlbumEditMode] = useState(false);
   
+  // 📅 달력 상태 컨트롤 바 데이터
   const [dashboardDate, setDashboardDate] = useState(getTodayDateString());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   const [dashMonth, setDashMonth] = useState(new Date().getMonth() + 1);
@@ -65,7 +66,7 @@ export default function App() {
   });
 
   const [careRecords, setCareRecords] = useState({});
-  const [expenses, setExpenses] = useState([{ id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 캔", amount: 14500 }]);
+  const [expenses, setExpenses] = useState([{ id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 사료 구입", amount: 14500 }]);
   const [schedules, setSchedules] = useState([{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]);
   const [albums, setAlbums] = useState({});
   const [selectedMedia, setSelectedMedia] = useState(null);
@@ -76,15 +77,38 @@ export default function App() {
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null });
   const [formData, setFormData] = useState({ 
-    title: '', amount: '', date: getTodayDateString(), time: '', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
+    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
   const currentCatData = cats.find(c => c.name === currentCat) || cats[0] || { name: '', birth: '2026-01-01', icon: '🐾', gender: '여아' };
 
+  // 💰 지출 통계 연도/월별 필터 엔진 함수
+  const getExpenseStats = () => {
+    const targetYearStr = dashYear.toString();
+    const targetMonthStr = String(dashMonth).padStart(2, '0');
+
+    let monthTotal = 0;
+    let yearTotal = 0;
+
+    expenses.forEach(exp => {
+      if (exp.date) {
+        if (exp.date.startsWith(targetYearStr)) {
+          yearTotal += exp.amount;
+          if (exp.date.substring(5, 7) === targetMonthStr) {
+            monthTotal += exp.amount;
+          }
+        }
+      }
+    });
+
+    return { monthTotal, yearTotal };
+  };
+
+  const { monthTotal, yearTotal } = getExpenseStats();
+
   const getAge = (dateStr) => {
-    const birth = new Date(dateStr);
-    const now = new Date();
+    const birth = new Date(dateStr); const now = new Date();
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     return months >= 12 ? `${Math.floor(months / 12)}살 ${months % 12}개월` : `${months}개월 차`;
   };
@@ -102,7 +126,7 @@ export default function App() {
   };
 
   const sendToTrashWithConfirm = (type, label, originalData, deleteAction) => {
-    const isConfirmed = window.confirm(`[삭제 확인] '${label}' 항목을 삭제하여 휴지통으로 보내시겠습니까?\n(휴지통에서 30일간 보관 후 자동 삭제됩니다.)`);
+    const isConfirmed = window.confirm(`[삭제 확인] '${label}' 항목을 삭제하여 휴지통으로 보내시겠습니까?`);
     if (!isConfirmed) return;
     const trashItem = { id: Date.now().toString(), type, label, originalData, daysLeft: 30, deletedAt: getTodayDateString() };
     setTrashBin([...trashBin, trashItem]);
@@ -119,14 +143,6 @@ export default function App() {
       setCareItems({ ...careItems, [cat]: [...(careItems[cat] || []), item.originalData.data] });
     } else if (item.type === 'album') {
       const cat = item.originalData.cat; setAlbums({ ...albums, [cat]: [...(albums[cat] || []), item.originalData] });
-    } else if (item.type === 'careRecord') {
-      const { cat, trackerId, date, record } = item.originalData;
-      const newRecords = { ...careRecords };
-      if (!newRecords[cat]) newRecords[cat] = {};
-      if (!newRecords[cat][trackerId]) newRecords[cat][trackerId] = {};
-      if (!newRecords[cat][trackerId][date]) newRecords[cat][trackerId][date] = [];
-      newRecords[cat][trackerId][date].push(record);
-      setCareRecords(newRecords);
     }
     setTrashBin(trashBin.filter(t => t.id !== id));
   };
@@ -140,14 +156,11 @@ export default function App() {
     }
   };
 
-  // 📸 신규 케어 전용 사진 아이콘 파일 생성 처리기
   const handleCustomIconUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setFormData({ ...formData, icon: event.target.result, isCustomImg: true });
-      };
+      reader.onload = (event) => setFormData({ ...formData, icon: event.target.result, isCustomImg: true });
       reader.readAsDataURL(file);
     }
   };
@@ -162,17 +175,6 @@ export default function App() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleAddRecord = (amount) => {
-    const numAmount = Number(amount); if (!numAmount || numAmount <= 0) return;
-    const now = new Date(); const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const newRecords = { ...careRecords };
-    if (!newRecords[currentCat]) newRecords[currentCat] = {};
-    if (!newRecords[currentCat][activeTracker.id]) newRecords[currentCat][activeTracker.id] = {};
-    if (!newRecords[currentCat][activeTracker.id][trackerDate]) newRecords[currentCat][activeTracker.id][trackerDate] = [];
-    newRecords[currentCat][activeTracker.id][trackerDate].push({ amount: numAmount, time: timeStr });
-    setCareRecords(newRecords); setTrackerInputAmount('');
   };
 
   const renderTab0 = () => (
@@ -218,13 +220,8 @@ export default function App() {
             <div key={item.id} className="relative group">
               <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="w-full bg-white hover:bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {/* 📸 일반 이모티콘 렌더링 vs 커스텀 이미지 분기 렌더링 팩토리 */}
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner border-2 overflow-hidden ${item.color === 'red' ? 'border-red-400' : item.color === 'orange' ? 'border-orange-400' : item.color === 'yellow' ? 'border-yellow-300' : item.color === 'green' ? 'border-green-400' : item.color === 'purple' ? 'border-purple-400' : 'border-blue-400'} bg-teal-50`}>
-                    {item.isCustomImg ? (
-                      <img src={item.icon} alt="ico" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-2xl">{item.icon}</span>
-                    )}
+                    {item.isCustomImg ? ( <img src={item.icon} alt="ico" className="w-full h-full object-cover" /> ) : ( <span className="text-2xl">{item.icon}</span> )}
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-gray-800 text-lg">{item.title}</span>
@@ -239,57 +236,23 @@ export default function App() {
         })}
       </div>
       <div className="p-4 shrink-0 border-t border-gray-100 bg-white">
-        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3.5 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]"><span className="text-xl leading-none">+</span> 새로운 케어 항목 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3.5 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]"><span className="text-xl leading-none">+</span> 새로운 케어 항목 추가</button>
       </div>
     </div>
   );
 
-  const renderTab1 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-gray-800 text-lg">💰 지출 내역</h3><span className="text-red-500 font-bold bg-red-50 px-3 py-1 rounded-full text-sm">{expenses.reduce((sum, item) => sum + Number(item.amount), 0).toLocaleString()}원</span></div>
-        <div className="space-y-2 mb-3">
-          {expenses.map((exp, i) => (
-            <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="flex gap-3 items-center">
-                <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">{exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}</div>
-                <div><p className="font-bold text-gray-800 text-sm">{exp.detail}</p><p className="text-xs text-gray-500">{exp.amount.toLocaleString()}원</p></div>
-              </div>
-              <button onClick={() => sendToTrashWithConfirm('expense', exp.detail, exp, () => { const newExp = [...expenses]; newExp.splice(i, 1); setExpenses(newExp); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
-            </div>
-          ))}
-        </div>
-        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '', unit: '', icon: '' }); }} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg text-sm transition-colors">+ 지출 추가</button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-gray-800 text-lg">📅 일정 관리</h3><span className="text-teal-600 font-bold bg-teal-50 px-3 py-1 rounded-full text-sm">{schedules.length}건</span></div>
-        <div className="space-y-2 mb-3">
-          {schedules.map((sch, i) => (
-            <div key={sch.id || i} className="flex justify-between items-center p-3 bg-amber-50 rounded-lg border border-amber-100 relative">
-              <div className="flex gap-3 items-center">
-                <div className="flex flex-col items-center bg-amber-200/50 px-2 py-1 rounded text-amber-700"><span className="text-[10px] font-bold leading-tight">{sch.date.slice(5)}</span><span className="text-sm font-black leading-tight">{sch.time}</span></div>
-                <div><span className="text-[10px] bg-amber-200 text-amber-900 px-1 rounded font-bold mr-1">{sch.cat}</span><p className="font-bold text-gray-800 text-sm inline-block">{sch.title}</p></div>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => { setModalState({ isOpen: true, type: 'editSchedule', targetId: sch.id }); setFormData({ title: sch.title, date: sch.date, time: sch.time, cat: sch.cat }); }} className="text-gray-400 hover:text-teal-600 p-1"><Icons.Edit /></button>
-                <button onClick={() => sendToTrashWithConfirm('schedule', sch.title, sch, () => { const newSch = [...schedules]; newSch.splice(i, 1); setSchedules(newSch); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: getTodayDateString(), time: '12:00', cat: currentCat }); }} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg text-sm transition-colors">+ 일정 추가</button>
-      </div>
-    </div>
-  );
-
-  const renderTab2 = () => {
-    const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay(); const daysInMonth = new Date(dashYear, dashMonth, 0).getDate();
+  // 📅 [1순위 통합 업그레이드] 종합 달력 + 원스톱 직접 일정 추가 및 제어 스페이스
+  const renderTab1 = () => {
+    const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay(); 
+    const daysInMonth = new Date(dashYear, dashMonth, 0).getDate();
     const calendarDays = Array.from({ length: firstDay }).map(() => null).concat(Array.from({ length: daysInMonth }).map((_, i) => i + 1));
+    
     const handleMonthChange = (offset) => {
-      let nm = dashMonth + offset; let ny = dashYear; if (nm > 12) { nm = 1; ny += 1; } if (nm < 1) { nm = 12; ny -= 1; }
+      let nm = dashMonth + offset; let ny = dashYear;
+      if (nm > 12) { nm = 1; ny += 1; } if (nm < 1) { nm = 12; ny -= 1; }
       setDashMonth(nm); setDashYear(ny);
     };
+    
     const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
 
     return (
@@ -297,16 +260,17 @@ export default function App() {
         <div className="bg-white px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => handleMonthChange(-1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronLeft /></button>
-            <span className="font-black text-xl text-gray-800">{dashYear}년 {dashMonth}월 전체 일정</span>
+            <span className="font-black text-xl text-gray-800">{dashYear}년 {dashMonth}월 종합 달력</span>
             <button onClick={() => handleMonthChange(1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronRight /></button>
           </div>
           <div className="grid grid-cols-7 gap-1 text-center mb-1">
-            {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (<div key={day} className={`text-xs font-bold py-1 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-400'}`}>{day}</div>))}
+            {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (<div key={day} className={`text-xs font-bold py-1 ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>{day}</div>))}
           </div>
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((d, idx) => {
               if (!d) return <div key={`empty-${idx}`} className="h-14"></div>;
               const dateStr = `${dashYear}-${String(dashMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              
               const activeDots = [];
               cats.forEach(cat => {
                 const catItems = careItems[cat.name] || [];
@@ -332,20 +296,86 @@ export default function App() {
             })}
           </div>
         </div>
+
+        {/* 달력 하단 영역: 선택 날짜 관리 시스템 및 직접 추가 */}
         <div className="flex-1 p-4 space-y-3">
-          <h3 className="font-extrabold text-gray-800 border-l-4 border-teal-400 pl-2 text-sm">{dashboardDate} 상세 내역</h3>
-          {targetDateSchedules.map((sch, idx) => (
-            <div key={idx} className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm flex items-center gap-2">
-              <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded">{sch.time}</span>
-              <span className="text-xs font-bold bg-gray-100 text-gray-600 px-1 rounded">{sch.cat}</span>
-              <p className="text-sm font-bold text-gray-800">{sch.title}</p>
+          <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2">
+            <h3 className="font-extrabold text-gray-800 text-sm">{dashboardDate} 일정 현황</h3>
+            <button 
+              onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }}
+              className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm"
+            >
+              + 이 날짜에 일정 추가
+            </button>
+          </div>
+
+          {targetDateSchedules.length === 0 ? (
+            <p className="text-center text-xs text-gray-400 py-8 bg-white rounded-xl border border-dashed">선택된 날짜에 등록된 일정이 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {targetDateSchedules.map((sch, idx) => (
+                <div key={sch.id || idx} className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded">{sch.time}</span>
+                    <span className="text-xs font-bold bg-gray-100 text-gray-600 px-1 rounded">{sch.cat}</span>
+                    <p className="text-sm font-bold text-gray-800">{sch.title}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => { setModalState({ isOpen: true, type: 'editSchedule', targetId: sch.id }); setFormData({ title: sch.title, date: sch.date, time: sch.time, cat: sch.cat }); }} className="text-gray-400 hover:text-teal-600 p-1"><Icons.Edit /></button>
+                    <button onClick={() => sendToTrashWithConfirm('schedule', sch.title, sch, () => { setSchedules(schedules.filter(s => s.id !== sch.id)); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-          {targetDateSchedules.length === 0 && <p className="text-center text-xs text-gray-400 py-6 bg-white rounded-xl border border-gray-100">등록된 지출/고정 일정이 없습니다.</p>}
+          )}
         </div>
       </div>
     );
   };
+
+  // 💰 [독립 대성공] 연별/월별 합계가 연동된 단독 지출 관리 탭
+  const renderTab2 = () => (
+    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto">
+      {/* 아빠님이 요청하신 월간/연간 스펙타클 통계 보드 */}
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
+        <span className="text-[10px] font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
+        <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
+          <div className="border-r border-slate-700/60 pr-2">
+            <p className="text-slate-400 text-xs font-bold">📅 {dashMonth}월 지출액</p>
+            <p className="text-xl font-black text-teal-300 mt-1">{monthTotal.toLocaleString()}<span className="text-xs ml-0.5">원</span></p>
+          </div>
+          <div className="pl-2">
+            <p className="text-slate-400 text-xs font-bold">📊 {dashYear}년 총 누적액</p>
+            <p className="text-xl font-black text-rose-300 mt-1">{yearTotal.toLocaleString()}<span className="text-xs ml-0.5">원</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3>
+          <span className="text-xs text-gray-400 font-medium">총 건수: {expenses.length}건</span>
+        </div>
+        
+        <div className="space-y-2 mb-3">
+          {expenses.map((exp, i) => (
+            <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="flex gap-3 items-center">
+                <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">{exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}</div>
+                <div>
+                  <p className="font-bold text-gray-800 text-sm">{exp.detail}</p>
+                  <p className="text-xs text-gray-500 font-black">{exp.amount.toLocaleString()}원</p>
+                </div>
+              </div>
+              <button onClick={() => sendToTrashWithConfirm('expense', exp.detail, exp, () => { setExpenses(expenses.filter(e => e.id !== exp.id)); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
+            </div>
+          ))}
+          {expenses.length === 0 && <p className="text-center text-xs text-gray-400 py-6">등록된 영수증 내역이 없습니다.</p>}
+        </div>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm hover:bg-[#8fd9cb] transition-colors">+ 새로운 영수증(지출) 내역 추가</button>
+      </div>
+    </div>
+  );
 
   const renderTab3 = () => (
     <div className="flex flex-col h-full bg-gray-50">
@@ -454,9 +484,9 @@ export default function App() {
     if (!modalState.isOpen) return null;
     let title = "";
     if (modalState.type === 'careItem') title = `${currentCat} 케어 항목 추가`;
-    if (modalState.type === 'expense') title = `지출 추가`;
-    if (modalState.type === 'schedule') title = `일정 추가`;
-    if (modalState.type === 'editSchedule') title = `일정 수정`;
+    if (modalState.type === 'expense') title = `지출 내역 영수증 추가`;
+    if (modalState.type === 'schedule') title = `일정 예약 등록`;
+    if (modalState.type === 'editSchedule') title = `일정 데이터 수정`;
     if (modalState.type === 'addMediaFile') title = `미디어 정보 등록 위치`;
     if (modalState.type === 'manageCats') title = `🐱 냥이 그룹 매니징 및 추가`;
 
@@ -479,9 +509,7 @@ export default function App() {
                         <button onClick={() => { if(cats.length > 1){ if(window.confirm(`${cat.name} 정보를 완전 삭제하시겠습니까?`)) setCats(cats.filter(c => c.id !== cat.id)); } }} className="text-red-400 p-1"><Icons.Delete /></button>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        {["남아", "여아"].map(g => (
-                          <button key={g} type="button" onClick={() => { const newCats=[...cats]; newCats[idx].gender=g; setCats(newCats); }} className={`py-1 rounded text-xs font-bold border transition-colors ${cat.gender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button>
-                        ))}
+                        {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => { const newCats=[...cats]; newCats[idx].gender=g; setCats(newCats); }} className={`py-1 rounded text-xs font-bold border transition-colors ${cat.gender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
                       </div>
                     </div>
                   ))}
@@ -509,13 +537,17 @@ export default function App() {
             )}
 
             {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
-            {modalState.type === 'expense' && ( <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
+            {modalState.type === 'expense' && (
+              <>
+                <p className="text-xs font-bold text-gray-500">📅 소비 날짜 선택</p>
+                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              </>
+            )}
             {(modalState.type === 'schedule' || modalState.type === 'editSchedule') && (
               <>
                 <p className="text-xs font-bold text-gray-500">대상 고양이 지정</p>
                 <div className="flex gap-1.5 overflow-x-auto pb-1">
                   {cats.map(c => ( <button key={c.id} type="button" onClick={() => setFormData({...formData, cat: c.name})} className={`px-3 py-1.5 border rounded-xl text-xs font-bold shrink-0 ${formData.cat === c.name ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-gray-50 text-gray-500'}`}>{c.name}</button> ))}
-                  <button type="button" onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl border border-dashed border-gray-300 shrink-0">+ 추가</button>
                 </div>
                 <div className="flex gap-2">
                   <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="flex-1 px-3 py-2.5 border rounded-lg text-sm" />
@@ -528,40 +560,29 @@ export default function App() {
               <>
                 <p className="text-xs font-bold text-gray-400">아이콘 선택 (확장형 이모티콘 팩 33종)</p>
                 <div className="grid grid-cols-6 gap-1.5 max-h-[110px] overflow-y-auto p-1.5 border rounded-xl bg-gray-50">
-                  {EXPANDED_EMOJIS.map(emoji => (
-                    <button key={emoji} type="button" onClick={() => setFormData({...formData, icon: emoji, isCustomImg: false})} className={`text-xl p-1.5 rounded-lg border transition-all text-center ${(!formData.isCustomImg && formData.icon === emoji) ? 'bg-teal-50 border-teal-400 shadow-sm scale-105' : 'bg-white border-gray-200'}`}>{emoji}</button>
-                  ))}
+                  {EXPANDED_EMOJIS.map(emoji => ( <button key={emoji} type="button" onClick={() => setFormData({...formData, icon: emoji, isCustomImg: false})} className={`text-xl p-1.5 rounded-lg border transition-all text-center ${(!formData.isCustomImg && formData.icon === emoji) ? 'bg-teal-50 border-teal-400 shadow-sm scale-105' : 'bg-white border-gray-200'}`}>{emoji}</button> ))}
                 </div>
-
-                {/* 📸 나만의 커스텀 사진첩 연동 이미지 버튼 레이아웃 */}
                 <div className="pt-1">
                   <p className="text-xs font-bold text-gray-400 mb-1">또는 사진첩 이미지 설정</p>
-                  <label className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 cursor-pointer border border-dashed border-gray-300">
+                  <label className="w-full py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 cursor-pointer border border-dashed">
                     <Icons.PhotoLibrary /> {formData.isCustomImg ? "📸 커스텀 사진 선택됨" : "📂 내 사진첩에서 선택"}
                     <input type="file" accept="image/*" onChange={handleCustomIconUpload} className="hidden" />
                   </label>
-                  {formData.isCustomImg && (
-                    <div className="mt-2 flex justify-center">
-                      <img src={formData.icon} alt="preview" className="w-12 h-12 rounded-full object-cover border-2 border-teal-400 shadow-sm" />
-                    </div>
-                  )}
+                  {formData.isCustomImg && ( <div className="mt-2 flex justify-center"><img src={formData.icon} alt="preview" className="w-12 h-12 rounded-full object-cover border-2 border-teal-400" /></div> )}
                 </div>
-                
                 <p className="text-xs font-bold text-gray-400 pt-1">종합달력 체크 색상 선택 (명확한 가시성)</p>
                 <div className="grid grid-cols-6 gap-2">
-                  {["red", "orange", "yellow", "green", "blue", "purple"].map(colorKey => (
-                    <button key={colorKey} type="button" onClick={() => setFormData({...formData, color: colorKey})} className={`h-8 rounded-lg ${COLOR_MAP[colorKey]} border-2 flex items-center justify-center text-white text-xs font-bold transition-all ${formData.color === colorKey ? 'border-gray-800 ring-2 ring-gray-400/50 scale-105' : 'border-transparent opacity-80'}`}>{formData.color === colorKey && "✓"}</button>
-                  ))}
+                  {["red", "orange", "yellow", "green", "blue", "purple"].map(colorKey => ( <button key={colorKey} type="button" onClick={() => setFormData({...formData, color: colorKey})} className={`h-8 rounded-lg ${COLOR_MAP[colorKey]} border-2 flex items-center justify-center text-white text-xs font-bold transition-all ${formData.color === colorKey ? 'border-gray-800 ring-2 ring-gray-400/50 scale-105' : 'border-transparent opacity-80'}`}>{formData.color === colorKey && "✓"}</button> ))}
                 </div>
               </>
             )}
 
-            {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder="내용을 입력하세요" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
+            {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder={modalState.type === 'expense' ? "예: 사료 구입, 캣쇼 참가비" : "내용을 입력하세요"} value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
             {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 (예: 회, ml, g)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
             {modalState.type === 'expense' && ( <input type="number" placeholder="금액 (숫자만)" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
           </div>
           <div className="px-5 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-            <button onClick={() => setModalState({ isOpen: false, type: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg">닫기</button>
+            <button onClick={() => setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg">닫기</button>
             {modalState.type !== 'manageCats' && (
               <button onClick={() => {
                 if (modalState.type === 'addMediaFile' && modalState.fileEvent) handleMediaUpload(modalState.fileEvent, formData.location);
@@ -602,11 +623,16 @@ export default function App() {
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans">
       <div className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900">
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
+        
+        {/* 하단 글로벌 앱 내비게이션 바 (메뉴명 및 정렬 순서 전면 최적화 배치) */}
         <div className="flex justify-around items-center bg-white border-t border-gray-200 pb-safe pt-2 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0 h-16">
           {[
-            { icon: <Icons.CheckSquare />, label: "오늘 케어" }, { icon: <Icons.Edit />, label: "가계부/일정" },
-            { icon: <Icons.Calendar />, label: "종합 달력" }, { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
-            { icon: <Icons.Trash />, label: "휴지통" }, { icon: <Icons.Code />, label: "제작 과정" }
+            { icon: <Icons.CheckSquare />, label: "오늘 케어" },
+            { icon: <Icons.Calendar />, label: "종합 달력" },
+            { icon: <Icons.Card />, label: "지출 관리" },
+            { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
+            { icon: <Icons.Trash />, label: "휴지통" },
+            { icon: <Icons.Code />, label: "제작 과정" }
           ].map((item, idx) => (
             <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${tabIdx === idx ? 'text-[#A3E4D7]' : 'text-gray-400 hover:text-gray-600'}`}>
               <div className="mb-0.5">{item.icon}</div><span className="text-[9px] font-bold tracking-tighter scale-90 sm:scale-100">{item.label}</span>
