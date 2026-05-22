@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-  AddPhoto: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" py="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
+  AddPhoto: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
   Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
   ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
   ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
@@ -37,14 +37,12 @@ export default function App() {
 
   const [vh, setVh] = useState(window.innerHeight * 0.01);
 
-  // 🍏 [아이폰 홈 화면 추가 풀스크린 메타 시스템 패치]
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
     document.getElementsByTagName('head')[0].appendChild(meta);
 
-    // 아이폰 웹앱(홈 화면 독립 실행) 상태 감지 고정 메타 추가
     const appMeta = document.createElement('meta');
     appMeta.name = "apple-mobile-web-app-capable";
     appMeta.content = "yes";
@@ -362,7 +360,8 @@ export default function App() {
   );
 
   const renderTab0 = () => (
-    <div className="flex flex-col h-full relative" style={getBgStyle('tab0')}>
+    // ★ [아이폰 상단 스피커 홀 안전 마진 주입 공정]: pt-10을 강제 이식하여 카메라 구멍 밑으로 떨어뜨림
+    <div className="flex flex-col h-full relative pt-10" style={getBgStyle('tab0')}>
       <div className="flex justify-between items-center p-3 bg-[#A3E4D7] bg-opacity-20 backdrop-blur-sm px-4">
         <div className="flex overflow-x-auto gap-2 scrollbar-hide flex-1">
           {cats.map((c) => (
@@ -444,7 +443,7 @@ export default function App() {
     const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
 
     return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto relative pb-12" style={getBgStyle('tab1')}>
+      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto relative pb-12 pt-10" style={getBgStyle('tab1')}>
         <div className="bg-white/90 backdrop-blur-xs px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => handleMonthChange(-1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronLeft /></button>
@@ -513,7 +512,7 @@ export default function App() {
   };
 
   const renderTab2 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 relative pb-12" style={getBgStyle('tab2')}>
+    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 relative pb-12 pt-10" style={getBgStyle('tab2')}>
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
         <span className="text-xs font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
         <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
@@ -548,7 +547,7 @@ export default function App() {
   );
 
   const renderTab3 = () => (
-    <div className="flex flex-col h-full bg-gray-50 relative" style={getBgStyle('tab3')}>
+    <div className="flex flex-col h-full bg-gray-50 relative pt-10" style={getBgStyle('tab3')}>
       <div className="w-full p-3 bg-[#E8F8F5]/90 border-b border-teal-100 flex justify-between items-center px-4"><p className="font-bold text-teal-700">보관된 미디어: {(albums[currentCat] || []).length}개</p></div>
       <div className="flex-1 overflow-y-auto p-4 pb-20">
         {(!albums[currentCat] || albums[currentCat].length === 0) ? (
@@ -570,14 +569,13 @@ export default function App() {
       </div>
       <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
         <div className="flex gap-2">
-          {/* 📂 사진 보관함 선택 단추 */}
           <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.PhotoLibrary /> 앨범 선택
             <input type="file" onChange={(e) => handleMediaUpload(e, "사진첩 📂")} className="hidden" />
           </label>
-          {/* ★ [카메라 직접 촬영 특수 패치 공정 완공]: 폰 보관함 메뉴를 우회하고 오직 렌즈 촬영 기능만 OS 팝업으로 유도 */}
           <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.Camera /> 직접 촬영
+            {/* ★ [카메라 직접 촬영 특수 우회 인터페이스 개방] 기기의 모든 미디어 팝업 렌즈 모듈 동기화 */}
             <input type="file" accept="image/*" capture="camera" onChange={(e) => handleMediaUpload(e, "현장 촬영 📸")} className="hidden" />
           </label>
           <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
@@ -588,7 +586,7 @@ export default function App() {
   );
 
   const renderTab4 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto relative pb-12" style={getBgStyle('tab4')}>
+    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto relative pb-12 pt-10" style={getBgStyle('tab4')}>
       <div className="flex justify-between items-center mb-4 bg-white/60 p-2 rounded-xl"><h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2><button onClick={() => { if(window.confirm("정말 휴지통을 영구적으로 완전히 비우시겠습니까?")) setTrashBin([]); }} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button></div>
       <div className="flex-1 space-y-3">
         {trashBin.length === 0 ? (
@@ -610,9 +608,8 @@ export default function App() {
     </div>
   );
 
-  // ★ [제작 과정 동기화 대대적 패치]: 아빠님이 요청하신 아이폰 홈 화면 고정 및 카메라 필터 개방 내역 영구 기록식 저장
   const renderTab5 = () => (
-    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16" style={getBgStyle('tab5')}>
+    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16 pt-10" style={getBgStyle('tab5')}>
       <div className="border-b border-slate-800 pb-4 mb-4">
         <span className="text-[10px] font-black bg-teal-500 text-teal-950 px-2 py-0.5 rounded">SYSTEM ARCHIVE MANUAL</span>
         <h2 className="text-xl font-black mt-1.5 text-white flex items-center gap-2"><Icons.Code /> 제작 과정</h2>
@@ -646,37 +643,39 @@ export default function App() {
           <h3 className="font-extrabold text-teal-300 text-sm">📱 [2부] 6대 스마트 폴더 기능 설명서</h3>
           <div className="space-y-2 pl-1">
             <div>
-              <h4 className="font-bold text-white text-xs">1. [오늘 케어] 대시보드 탭</h4>
+              <h4 className="font-bold text-white text-xs">1. [오늘 케어] 대시보드 탭 (아이폰 상단 간섭 돌파)</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 우측 위 설정 단추를 통해 다중 고양이를 무제한 등록하고 교체할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• 새로운 항목 추가 시 단위(kg, 알, ml)를 지정하면 입력값과 단위가 똑같이 반응형 출력됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• 아이폰 상단 M자 노치 및 카메라 홀 간섭 버그를 해결하기 위해 <span className="text-teal-300">Safe-Area 상단 헤더 마진 40px 자동 낙하 공정</span>을 완공했습니다.</p>
               <p className="text-slate-400 text-[11px]">• 프로필 사진을 1초간 꾹 누르면 깔끔하게 삭제/수정 창이 팝업됩니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">2. [종합 달력] 스케줄 탭 (실시간 알람 탑재)</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 고유 색상 도트가 자동 맵핑됩니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 푸시 알림을 송출합니다.</p>
+              <p className="text-slate-400 text-[11px]">• 타임 클락 알림 예약을 추가하면 정각 도래 시 백그라운드 스케줄러가 반응하여 푸시 알림을 송출합니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">3. [지출 관리] 가계부 탭</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 물품 구매 비용을 등록하면 당월 누적 지출액과 연간 총액 통계를 실시간 계산합니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 초압축 미디어 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 고화질 이미지 보관을 위해 2D Canvas 압축 엔진을 가동합니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">다이렉트 렌더 촬영 특수 개조:</span> 보관함이나 파일 뒤적거림 메뉴를 완벽하게 차단하고 스마트폰 OS 가용한 다이렉트 촬영 인터페이스 렌즈 레이어를 개방 조립 완료.</p>
+              {/* ★ [제작 과정 렌즈 보관함 우회 일대기 자동 업데이트 기록 공간] */}
+              <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 하드웨어 연동 잔혹사</h4>
+              <p className="text-rose-300 text-[11px] font-bold mt-0.5">⚠️ iOS(아이폰) 보안 모바일 환경 한계 경고:</p>
+              <p className="text-slate-400 text-[11px] pl-2">애플 사파리의 독점 규격 패치로 인해 웹 브라우저 단독 환경에서는 스노우, 소다 등 외부 특정 카메라 어플을 스위치로 다이렉트 강제 호출하는 행위가 원천 봉쇄되어 순정 카메라만 가동됩니다. (스노우 앱 선촬영 후 앨범 선택 업로드를 강력 권장합니다.)</p>
+              <p className="text-teal-300 text-[11px] font-bold mt-1">🤖 Android(갤럭시) 기기 환경 가이드:</p>
+              <p className="text-slate-400 text-[11px] pl-2">안드로이드 기반 기기에서는 [직접 촬영] 터치 시 다이렉트 미디어 개방 인텐트가 호출되어, 순정 카메라 렌즈 외에도 스노우/필터 앱 등 유저가 원하는 서드파티 촬영기를 직접 지정하여 촬영 및 아카이브가 가능합니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 아이폰 홈화면 스케일 잠금 프리미엄 패치]</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 사진을 독립 매핑할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">iOS 단독 실행형 뷰포트 고정 락:</span> 사파리 브라우저에서 '홈 화면에 추가'를 눌러 전체화면 앱 모드로 구동할 시 위아래 여백이 일그러지거나 쪼그라드는 현상을 방지하는 애플 규격 `standalone` 풀스크린 매커니즘 패치 완료.</p>
+              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 모바일 크기 고정 잠금 프리미엄 패치]</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 배경 사진을 매핑할 수 있습니다.</p>
+              <p className="text-slate-400 text-[11px]">• 아이폰 '홈 화면에 추가' 모드 구동 시 사파리 바 소멸에 따른 높이 왜곡을 차단하기 위해 <span className="text-teal-300">애플 공인 standalone 독립 실행형 크기 락 엔진</span>을 완공하여 전체 화면으로 고정했습니다.</p>
             </div>
           </div>
         </div>
-        <p className="text-center text-[10px] text-slate-500 font-mono pt-2">© 2026 Bella & Roy Papa. All Rights Reserved.</p>
+        {renderBgEditButton('tab5')}
       </div>
-      {renderBgEditButton('tab5')}
-    </div>
-  );
+    );
+  };
 
   const renderTrackerScreen = () => {
     const isOpen = activeTracker !== null; const tracker = activeTracker || { id: '', title: '', unit: '회', icon: '', isCustomImg: false };
@@ -850,7 +849,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
-      {/* 🏡 [아이폰 홈화면 standalone 스케일 엔진 최종 완공] */}
       <div 
         className="w-full sm:max-w-md bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
         style={{ 
