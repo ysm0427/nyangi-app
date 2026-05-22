@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
@@ -35,24 +35,41 @@ export default function App() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
-  const [cats, setCats] = useState([
+  // 폰 화면 돋보기 방지 메타태그 강제 주입
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = "viewport";
+    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+    document.getElementsByTagName('head')[0].appendChild(meta);
+  }, []);
+
+  // 로컬스토리지에서 안전하게 데이터를 불러오는 함수
+  const getLocalData = (key, fallback) => {
+    const saved = localStorage.getItem(key);
+    try {
+      return saved ? JSON.parse(saved) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  const [cats, setCats] = useState(() => getLocalData('cats', [
     { id: "cat-1", name: "벨라", birth: "2024-01-20", icon: "👑", gender: "여아" },
     { id: "cat-2", name: "로이", birth: "2025-12-10", icon: "🍼", gender: "남아" }
-  ]);
+  ]));
   
   const [currentCat, setCurrentCat] = useState("벨라");
   const [tabIdx, setTabIdx] = useState(0);
-  const [profilePics, setProfilePics] = useState({});
+  const [profilePics, setProfilePics] = useState(() => getLocalData('profilePics', {}));
   const [isAlbumEditMode, setIsAlbumEditMode] = useState(false);
   
-  // 📅 달력 상태 컨트롤 바 데이터
   const [dashboardDate, setDashboardDate] = useState(getTodayDateString());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   const [dashMonth, setDashMonth] = useState(new Date().getMonth() + 1);
 
-  const [trashBin, setTrashBin] = useState([]);
+  const [trashBin, setTrashBin] = useState(() => getLocalData('trashBin', []));
 
-  const [careItems, setCareItems] = useState({
+  const [careItems, setCareItems] = useState(() => getLocalData('careItems', {
     "벨라": [
       { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
       { id: "brush", title: "렉돌 코트 빗질", icon: "🪮", isCustomImg: false, unit: "회", color: "purple" },
@@ -61,14 +78,14 @@ export default function App() {
     "로이": [
       { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
       { id: "walk", title: "캣쇼 워킹 연습", icon: "🧸", isCustomImg: false, unit: "분", color: "orange" },
-      { id: "weight", title: "몸무게 체크", icon: "⚖️", isCustomImg: false, unit: "kg", color: "green" }
+      { id: "weight", title: "몸무게 체크", icon: "⚖️", unit: "kg", color: "green" }
     ]
-  });
+  }));
 
-  const [careRecords, setCareRecords] = useState({});
-  const [expenses, setExpenses] = useState([{ id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 사료 구입", amount: 14500 }]);
-  const [schedules, setSchedules] = useState([{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]);
-  const [albums, setAlbums] = useState({});
+  const [careRecords, setCareRecords] = useState(() => getLocalData('careRecords', {}));
+  const [expenses, setExpenses] = useState(() => getLocalData('expenses', [{ id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 사료 구입", amount: 14500 }]));
+  const [schedules, setSchedules] = useState(() => getLocalData('schedules', [{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]));
+  const [albums, setAlbums] = useState(() => getLocalData('albums', {}));
   const [selectedMedia, setSelectedMedia] = useState(null);
 
   const [activeTracker, setActiveTracker] = useState(null);
@@ -81,27 +98,30 @@ export default function App() {
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
+  // 데이터가 바뀔 때마다 자동으로 비밀 금고(로컬스토리지)에 실시간 강제 저장
+  useEffect(() => { localStorage.setItem('cats', JSON.stringify(cats)); }, [cats]);
+  useEffect(() => { localStorage.setItem('profilePics', JSON.stringify(profilePics)); }, [profilePics]);
+  useEffect(() => { localStorage.setItem('careItems', JSON.stringify(careItems)); }, [careItems]);
+  useEffect(() => { localStorage.setItem('careRecords', JSON.stringify(careRecords)); }, [careRecords]);
+  useEffect(() => { localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses]);
+  useEffect(() => { localStorage.setItem('schedules', JSON.stringify(schedules)); }, [schedules]);
+  useEffect(() => { localStorage.setItem('albums', JSON.stringify(albums)); }, [albums]);
+  useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
+
   const currentCatData = cats.find(c => c.name === currentCat) || cats[0] || { name: '', birth: '2026-01-01', icon: '🐾', gender: '여아' };
 
-  // 💰 지출 통계 연도/월별 필터 엔진 함수
   const getExpenseStats = () => {
     const targetYearStr = dashYear.toString();
     const targetMonthStr = String(dashMonth).padStart(2, '0');
-
-    let monthTotal = 0;
-    let yearTotal = 0;
-
+    let monthTotal = 0; let yearTotal = 0;
     expenses.forEach(exp => {
       if (exp.date) {
         if (exp.date.startsWith(targetYearStr)) {
           yearTotal += exp.amount;
-          if (exp.date.substring(5, 7) === targetMonthStr) {
-            monthTotal += exp.amount;
-          }
+          if (exp.date.substring(5, 7) === targetMonthStr) { monthTotal += exp.amount; }
         }
       }
     });
-
     return { monthTotal, yearTotal };
   };
 
@@ -177,6 +197,32 @@ export default function App() {
     }
   };
 
+  const handleAddRecord = (amountStr) => {
+    if (!amountStr || !activeTracker) return;
+    const num = parseFloat(amountStr);
+    if (isNaN(num)) return;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const newRecord = { amount: num, time: timeStr };
+    
+    const catRecords = careRecords[currentCat] || {};
+    const itemRecords = catRecords[activeTracker.id] || {};
+    const dateRecords = itemRecords[trackerDate] || [];
+    
+    const updatedRecords = {
+      ...careRecords,
+      [currentCat]: {
+        ...catRecords,
+        [activeTracker.id]: {
+          ...itemRecords,
+          [trackerDate]: [...dateRecords, newRecord]
+        }
+      }
+    };
+    setCareRecords(updatedRecords);
+    setTrackerInputAmount('');
+  };
+
   const renderTab0 = () => (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="flex justify-between items-center p-3 bg-[#A3E4D7] bg-opacity-20 backdrop-blur-sm px-4">
@@ -241,18 +287,15 @@ export default function App() {
     </div>
   );
 
-  // 📅 [1순위 통합 업그레이드] 종합 달력 + 원스톱 직접 일정 추가 및 제어 스페이스
   const renderTab1 = () => {
     const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay(); 
     const daysInMonth = new Date(dashYear, dashMonth, 0).getDate();
     const calendarDays = Array.from({ length: firstDay }).map(() => null).concat(Array.from({ length: daysInMonth }).map((_, i) => i + 1));
-    
     const handleMonthChange = (offset) => {
       let nm = dashMonth + offset; let ny = dashYear;
       if (nm > 12) { nm = 1; ny += 1; } if (nm < 1) { nm = 12; ny -= 1; }
       setDashMonth(nm); setDashYear(ny);
     };
-    
     const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
 
     return (
@@ -270,14 +313,11 @@ export default function App() {
             {calendarDays.map((d, idx) => {
               if (!d) return <div key={`empty-${idx}`} className="h-14"></div>;
               const dateStr = `${dashYear}-${String(dashMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-              
               const activeDots = [];
               cats.forEach(cat => {
                 const catItems = careItems[cat.name] || [];
                 catItems.forEach(item => {
-                  if (careRecords[cat.name]?.[item.id]?.[dateStr]?.length > 0 && item.color && !activeDots.includes(item.color)) {
-                    activeDots.push(item.color);
-                  }
+                  if (careRecords[cat.name]?.[item.id]?.[dateStr]?.length > 0 && item.color && !activeDots.includes(item.color)) { activeDots.push(item.color); }
                 });
               });
               const hasSchedule = schedules.some(s => s.date === dateStr);
@@ -297,18 +337,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* 달력 하단 영역: 선택 날짜 관리 시스템 및 직접 추가 */}
         <div className="flex-1 p-4 space-y-3">
           <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2">
             <h3 className="font-extrabold text-gray-800 text-sm">{dashboardDate} 일정 현황</h3>
-            <button 
-              onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }}
-              className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm"
-            >
-              + 이 날짜에 일정 추가
-            </button>
+            <button onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }} className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm">+ 이 날짜에 일정 추가</button>
           </div>
-
           {targetDateSchedules.length === 0 ? (
             <p className="text-center text-xs text-gray-400 py-8 bg-white rounded-xl border border-dashed">선택된 날짜에 등록된 일정이 없습니다.</p>
           ) : (
@@ -333,12 +366,10 @@ export default function App() {
     );
   };
 
-  // 💰 [독립 대성공] 연별/월별 합계가 연동된 단독 지출 관리 탭
   const renderTab2 = () => (
     <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto">
-      {/* 아빠님이 요청하신 월간/연간 스펙타클 통계 보드 */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
-        <span className="text-[10px] font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
+        <span className="text-xs font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
         <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
           <div className="border-r border-slate-700/60 pr-2">
             <p className="text-slate-400 text-xs font-bold">📅 {dashMonth}월 지출액</p>
@@ -352,27 +383,19 @@ export default function App() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3>
-          <span className="text-xs text-gray-400 font-medium">총 건수: {expenses.length}건</span>
-        </div>
-        
+        <div className="flex justify-between items-center mb-3"><h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3><span className="text-xs text-gray-400 font-medium">총 건수: {expenses.length}건</span></div>
         <div className="space-y-2 mb-3">
           {expenses.map((exp, i) => (
             <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div className="flex gap-3 items-center">
                 <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">{exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}</div>
-                <div>
-                  <p className="font-bold text-gray-800 text-sm">{exp.detail}</p>
-                  <p className="text-xs text-gray-500 font-black">{exp.amount.toLocaleString()}원</p>
-                </div>
+                <div><p className="font-bold text-gray-800 text-sm">{exp.detail}</p><p className="text-xs text-gray-500 font-black">{exp.amount.toLocaleString()}원</p></div>
               </div>
               <button onClick={() => sendToTrashWithConfirm('expense', exp.detail, exp, () => { setExpenses(expenses.filter(e => e.id !== exp.id)); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
             </div>
           ))}
-          {expenses.length === 0 && <p className="text-center text-xs text-gray-400 py-6">등록된 영수증 내역이 없습니다.</p>}
         </div>
-        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm hover:bg-[#8fd9cb] transition-colors">+ 새로운 영수증(지출) 내역 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm transition-colors">+ 새로운 지출 내역 추가</button>
       </div>
     </div>
   );
@@ -401,7 +424,7 @@ export default function App() {
       <div className="p-4 flex flex-col gap-2 border-t border-gray-100 bg-white">
         <div className="flex gap-2">
           <label className="flex-1 py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
-          <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영 (동영상 포함)<input type="file" accept="image/*,video/*" capture="environment" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" capture="environment" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
         </div>
         <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`w-full py-2 font-bold rounded-xl text-xs ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '편집 완료' : '미디어 삭제/수정'}</button>
       </div>
@@ -422,7 +445,7 @@ export default function App() {
                 <p className="text-sm font-bold text-gray-800 inline-block">{item.label}</p>
                 <p className="text-[11px] text-red-400 font-bold mt-1">⏳ 보관 유효기간 {item.daysLeft}일 남음</p>
               </div>
-              <button onClick={() => restoreFromTrash(item.id)} className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg shadow-sm"><Icons.Restore /> 복구</button>
+              <button onClick={() => restoreFromTrash(item.id)} className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"><Icons.Restore /> 복구</button>
             </div>
           ))}
         </div>
@@ -438,18 +461,16 @@ export default function App() {
           <h3 className="font-extrabold text-teal-400 mb-1.5 text-[15px]">💻 개발 환경 및 기술 스택</h3>
           <div className="grid grid-cols-2 gap-2 mt-3 font-mono text-[11px]">
             <div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Engine:</span> React 18</div><div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Style:</span> Tailwind CSS</div>
-            <div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Repository:</span> GitHub</div><div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Server:</span> Netlify Cloud</div>
+            <div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Repository:</span> GitHub</div><div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Server:</span> Vercel Cloud</div>
           </div>
         </div>
         <div className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl space-y-3">
           <h3 className="font-extrabold text-teal-400 text-[15px]">🛠 아빠의 개발 고전분투기 (노고 기록)</h3>
           <div className="border-l-2 border-teal-500/30 pl-3 space-y-2">
-            <div><h4 className="font-bold text-white text-xs">Step 1. 시스템 인프라 구축 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">최초 빈 화면 렌더링 에러 및 넷리파이 `build` 퍼블리시 경로 미스매치 디버깅 성공. 파일명 규칙(`.json` 점 표기) 정밀 분석 및 캐시 클리어 공정 수행.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 2. 컴포넌트 고도화 및 네이티브 카메라 연동</h4><p className="text-slate-400 text-[11px] mt-0.5">단순 카운터 기능에서 4대 메뉴 모바일 반응형 탭 전환 도입. 실제 스마트폰 하드웨어 카메라를 다이렉트로 연동하여 실시간 촬영(동영상/사진) 및 메타 데이터(기록 위치, 일시) 로깅 아키텍처 전면 설계.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 3. 종합 대시보드 및 멀티펫 매니징 완성</h4><p className="text-slate-400 text-[11px] mt-0.5">가계부 및 스케줄러 간 동기화를 위한 '종합 달력' 시스템 제작. 데이터 파괴 방지를 위한 '30일 타임아웃형 휴지통 복구 엔진' 수동 코딩 적용 및 무제한 냥이 추가/수정 멀티 트래킹 고도화 완성.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 1. 시스템 인프라 및 금고 연동 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후, 기기 자체 안전 금고인 localStorage를 구축하여 껐다 켜도 데이터가 평생 소멸하지 않는 자동 영구 저장 메커니즘 전면 탑재 성공.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 2. 모바일 화면 최적화 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">스마트폰 텍스트창 입력 시 발생하는 특유의 자동 화면 확대(Zoom in) 현상을 완벽 차단하는 고정형 뷰포트 아키텍처 및 16px 규격 폼 전면 개정 완료.</p></div>
           </div>
         </div>
-        <div className="bg-teal-950/40 border border-teal-800/30 p-4 rounded-xl text-center"><p className="text-teal-300 font-bold text-xs">"수많은 시행착오와 빌드 실패를 이겨내고 오직 벨라와 로이만을 위해 아빠가 한 땀 한 땀 직접 다듬어낸 세상에 단 하나뿐인 어플리케이션입니다."</p></div>
       </div>
     </div>
   );
@@ -464,14 +485,20 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-4 flex flex-col">
           <p className="text-4xl font-black text-teal-600 text-center py-6">{totalAmount}<span className="text-2xl text-teal-400 font-bold ml-1">{tracker.unit}</span></p>
           <div className="flex gap-2 mb-4">
-            <input type="number" placeholder={`직접 입력 (${tracker.unit})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none" />
-            <button onClick={() => handleAddRecord(trackerInputAmount)} className="px-6 py-2.5 bg-[#A3E4D7] font-bold rounded-xl shadow-sm">등록</button>
+            <input type="number" step="any" placeholder={`직접 입력 (${tracker.unit})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
+            <button onClick={() => handleAddRecord(trackerInputAmount)} className="px-6 py-2.5 bg-[#A3E4D7] font-bold rounded-xl shadow-sm text-base">등록</button>
           </div>
           <div className="space-y-2">
             {dailyRecords.map((record, i) => (
               <div key={i} className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p className="font-bold text-gray-800">{record.amount} {tracker.unit} <span className="text-xs text-gray-400 ml-2">{record.time}</span></p>
-                <button onClick={() => sendToTrashWithConfirm('careRecord', `${tracker.title} 상세내역`, { cat: currentCat, trackerId: tracker.id, date: trackerDate, index: i, record }, () => { const newRecords = { ...careRecords }; newRecords[currentCat][tracker.id][trackerDate].splice(i, 1); setCareRecords(newRecords); })} className="p-2 text-red-400"><Icons.Delete /></button>
+                <p className="font-bold text-gray-800 text-base">{record.amount} {tracker.unit} <span className="text-xs text-gray-400 ml-2">{record.time}</span></p>
+                <button onClick={() => {
+                  if(window.confirm("이 기록을 삭제하시겠습니까?")) {
+                    const newRecords = { ...careRecords };
+                    newRecords[currentCat][tracker.id][trackerDate].splice(i, 1);
+                    setCareRecords(newRecords);
+                  }
+                }} className="p-2 text-red-400"><Icons.Delete /></button>
               </div>
             ))}
           </div>
@@ -493,23 +520,22 @@ export default function App() {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-[340px] shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-black text-md text-gray-800">{title}</h3><button onClick={() => setModalState({ isOpen: false, type: null })} className="text-gray-400 hover:text-gray-600"><Icons.Close /></button></div>
+          <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-black text-base text-gray-800">{title}</h3><button onClick={() => setModalState({ isOpen: false, type: null })} className="text-gray-400 hover:text-gray-600"><Icons.Close /></button></div>
           <div className="p-5 space-y-3 max-h-[450px] overflow-y-auto">
-            
             {modalState.type === 'manageCats' && (
               <div className="space-y-4">
                 <div className="space-y-3 border-b pb-3">
-                  <p className="text-xs font-bold text-gray-400">등록된 고양이 리스트 (이름/생일/성별 수정)</p>
+                  <p className="text-xs font-bold text-gray-400">등록된 고양이 리스트</p>
                   {cats.map((cat, idx) => (
                     <div key={cat.id} className="flex flex-col gap-1.5 bg-gray-50 p-2.5 rounded-lg border">
                       <div className="flex gap-1 items-center">
-                        <input type="text" value={cat.icon} onChange={e => { const newCats=[...cats]; newCats[idx].icon=e.target.value; setCats(newCats); }} className="w-8 text-center border bg-white rounded p-1 text-sm" />
-                        <input type="text" value={cat.name} onChange={e => { const newCats=[...cats]; newCats[idx].name=e.target.value; setCats(newCats); }} className="w-16 font-bold border bg-white rounded p-1 text-sm" />
-                        <input type="date" value={cat.birth} onChange={e => { const newCats=[...cats]; newCats[idx].birth=e.target.value; setCats(newCats); }} className="flex-1 border bg-white rounded p-1 text-[11px] font-mono" />
+                        <input type="text" value={cat.icon} onChange={e => { const newCats=[...cats]; newCats[idx].icon=e.target.value; setCats(newCats); }} className="w-8 text-center border bg-white rounded p-1 text-base" />
+                        <input type="text" value={cat.name} onChange={e => { const newCats=[...cats]; newCats[idx].name=e.target.value; setCats(newCats); }} className="w-16 font-bold border bg-white rounded p-1 text-base" />
+                        <input type="date" value={cat.birth} onChange={e => { const newCats=[...cats]; newCats[idx].birth=e.target.value; setCats(newCats); }} className="flex-1 border bg-white rounded p-1 text-sm font-mono" />
                         <button onClick={() => { if(cats.length > 1){ if(window.confirm(`${cat.name} 정보를 완전 삭제하시겠습니까?`)) setCats(cats.filter(c => c.id !== cat.id)); } }} className="text-red-400 p-1"><Icons.Delete /></button>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => { const newCats=[...cats]; newCats[idx].gender=g; setCats(newCats); }} className={`py-1 rounded text-xs font-bold border transition-colors ${cat.gender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
+                        {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => { const newCats=[...cats]; newCats[idx].gender=g; setCats(newCats); }} className={`py-1.5 rounded text-xs font-bold border transition-colors ${cat.gender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
                       </div>
                     </div>
                   ))}
@@ -517,10 +543,10 @@ export default function App() {
                 <div className="space-y-2 bg-teal-50/50 p-3 rounded-xl border border-teal-100">
                   <p className="text-xs font-black text-teal-800">✨ 새로운 냥이 추가하기</p>
                   <div className="flex gap-1">
-                    <input type="text" placeholder="아이콘" value={formData.catIcon} onChange={e => setFormData({...formData, catIcon: e.target.value})} className="w-12 border rounded p-2 text-center text-sm bg-white" />
-                    <input type="text" placeholder="이름 입력" value={formData.catName} onChange={e => setFormData({...formData, catName: e.target.value})} className="flex-1 border rounded p-2 text-sm bg-white font-bold" />
+                    <input type="text" placeholder="아이콘" value={formData.catIcon} onChange={e => setFormData({...formData, catIcon: e.target.value})} className="w-12 border rounded p-2 text-center text-base bg-white" />
+                    <input type="text" placeholder="이름 입력" value={formData.catName} onChange={e => setFormData({...formData, catName: e.target.value})} className="flex-1 border rounded p-2 text-base bg-white font-bold" />
                   </div>
-                  <input type="date" value={formData.catBirth} onChange={e => setFormData({...formData, catBirth: e.target.value})} className="w-full border rounded p-2 text-xs bg-white font-mono" />
+                  <input type="date" value={formData.catBirth} onChange={e => setFormData({...formData, catBirth: e.target.value})} className="w-full border rounded p-2 text-base bg-white font-mono" />
                   <div className="grid grid-cols-2 gap-1 pt-1">
                     {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => setFormData({...formData, catGender: g})} className={`py-1.5 rounded-lg text-xs font-bold border ${formData.catGender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-400'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
                   </div>
@@ -536,11 +562,11 @@ export default function App() {
               </div>
             )}
 
-            {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
+            {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
             {modalState.type === 'expense' && (
               <>
                 <p className="text-xs font-bold text-gray-500">📅 소비 날짜 선택</p>
-                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" />
               </>
             )}
             {(modalState.type === 'schedule' || modalState.type === 'editSchedule') && (
@@ -550,39 +576,39 @@ export default function App() {
                   {cats.map(c => ( <button key={c.id} type="button" onClick={() => setFormData({...formData, cat: c.name})} className={`px-3 py-1.5 border rounded-xl text-xs font-bold shrink-0 ${formData.cat === c.name ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-gray-50 text-gray-500'}`}>{c.name}</button> ))}
                 </div>
                 <div className="flex gap-2">
-                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="flex-1 px-3 py-2.5 border rounded-lg text-sm" />
-                  <input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-[110px] px-3 py-2.5 border rounded-lg text-sm" />
+                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="flex-1 px-3 py-2.5 border rounded-lg text-base" />
+                  <input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-[110px] px-3 py-2.5 border rounded-lg text-base" />
                 </div>
               </>
             )}
             
             {modalState.type === 'careItem' && (
               <>
-                <p className="text-xs font-bold text-gray-400">아이콘 선택 (확장형 이모티콘 팩 33종)</p>
+                <p className="text-xs font-bold text-gray-400">아이콘 선택 (이모티콘 팩)</p>
                 <div className="grid grid-cols-6 gap-1.5 max-h-[110px] overflow-y-auto p-1.5 border rounded-xl bg-gray-50">
                   {EXPANDED_EMOJIS.map(emoji => ( <button key={emoji} type="button" onClick={() => setFormData({...formData, icon: emoji, isCustomImg: false})} className={`text-xl p-1.5 rounded-lg border transition-all text-center ${(!formData.isCustomImg && formData.icon === emoji) ? 'bg-teal-50 border-teal-400 shadow-sm scale-105' : 'bg-white border-gray-200'}`}>{emoji}</button> ))}
                 </div>
                 <div className="pt-1">
                   <p className="text-xs font-bold text-gray-400 mb-1">또는 사진첩 이미지 설정</p>
-                  <label className="w-full py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 cursor-pointer border border-dashed">
+                  <label className="w-full py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 cursor-pointer border border-dashed text-base">
                     <Icons.PhotoLibrary /> {formData.isCustomImg ? "📸 커스텀 사진 선택됨" : "📂 내 사진첩에서 선택"}
                     <input type="file" accept="image/*" onChange={handleCustomIconUpload} className="hidden" />
                   </label>
                   {formData.isCustomImg && ( <div className="mt-2 flex justify-center"><img src={formData.icon} alt="preview" className="w-12 h-12 rounded-full object-cover border-2 border-teal-400" /></div> )}
                 </div>
-                <p className="text-xs font-bold text-gray-400 pt-1">종합달력 체크 색상 선택 (명확한 가시성)</p>
+                <p className="text-xs font-bold text-gray-400 pt-1">종합달력 체크 색상 선택</p>
                 <div className="grid grid-cols-6 gap-2">
                   {["red", "orange", "yellow", "green", "blue", "purple"].map(colorKey => ( <button key={colorKey} type="button" onClick={() => setFormData({...formData, color: colorKey})} className={`h-8 rounded-lg ${COLOR_MAP[colorKey]} border-2 flex items-center justify-center text-white text-xs font-bold transition-all ${formData.color === colorKey ? 'border-gray-800 ring-2 ring-gray-400/50 scale-105' : 'border-transparent opacity-80'}`}>{formData.color === colorKey && "✓"}</button> ))}
                 </div>
               </>
             )}
 
-            {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder={modalState.type === 'expense' ? "예: 사료 구입, 캣쇼 참가비" : "내용을 입력하세요"} value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
-            {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 (예: 회, ml, g)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
-            {modalState.type === 'expense' && ( <input type="number" placeholder="금액 (숫자만)" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-sm" /> )}
+            {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder={modalState.type === 'expense' ? "예: 사료 구입, 캣쇼 참가비" : "내용을 입력하세요"} value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
+            {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 (예: 회, ml, g)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
+            {modalState.type === 'expense' && ( <input type="number" placeholder="금액 (숫자만)" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
           </div>
           <div className="px-5 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-            <button onClick={() => setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg">닫기</button>
+            <button onClick={() => setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null })} className="px-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-200 rounded-lg">닫기</button>
             {modalState.type !== 'manageCats' && (
               <button onClick={() => {
                 if (modalState.type === 'addMediaFile' && modalState.fileEvent) handleMediaUpload(modalState.fileEvent, formData.location);
@@ -591,7 +617,7 @@ export default function App() {
                 else if (modalState.type === 'schedule' && formData.title) setSchedules([...schedules, { id: Date.now().toString(), cat: formData.cat || currentCat, date: formData.date, time: formData.time, title: formData.title }]);
                 else if (modalState.type === 'editSchedule') setSchedules(schedules.map(s => s.id === modalState.targetId ? { ...s, title: formData.title, date: formData.date, time: formData.time, cat: formData.cat } : s));
                 setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null });
-              }} className="px-4 py-2 text-sm font-bold bg-[#A3E4D7] text-gray-800 hover:bg-[#8fd9cb] rounded-lg">저장 및 추가</button>
+              }} className="px-4 py-2 text-base font-bold bg-[#A3E4D7] text-gray-800 hover:bg-[#8fd9cb] rounded-lg">저장 및 추가</button>
             )}
           </div>
         </div>
@@ -604,7 +630,7 @@ export default function App() {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-          <div className="p-3 border-b flex justify-between items-center bg-gray-50"><span className="font-bold text-xs text-teal-600">📌 미디어 정보</span><button onClick={() => setSelectedMedia(null)} className="p-1 bg-gray-200 rounded-full text-gray-700"><Icons.Close /></button></div>
+          <div className="p-3 border-b flex justify-between items-center bg-gray-50"><span className="font-bold text-xs text-teal-600">📌 미디어 정보</span> <button onClick={() => setSelectedMedia(null)} className="p-1 bg-gray-200 rounded-full text-gray-700"><Icons.Close /></button></div>
           <div className="bg-black max-h-[380px] flex items-center justify-center overflow-hidden">
             {selectedMedia.isVideo ? ( <video src={selectedMedia.src} className="w-full h-full object-contain" controls autoPlay playsInline /> ) : ( <img src={selectedMedia.src} alt="detail" className="w-full h-full object-contain" /> )}
           </div>
@@ -623,16 +649,11 @@ export default function App() {
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans">
       <div className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900">
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
-        
-        {/* 하단 글로벌 앱 내비게이션 바 (메뉴명 및 정렬 순서 전면 최적화 배치) */}
         <div className="flex justify-around items-center bg-white border-t border-gray-200 pb-safe pt-2 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0 h-16">
           {[
-            { icon: <Icons.CheckSquare />, label: "오늘 케어" },
-            { icon: <Icons.Calendar />, label: "종합 달력" },
-            { icon: <Icons.Card />, label: "지출 관리" },
-            { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
-            { icon: <Icons.Trash />, label: "휴지통" },
-            { icon: <Icons.Code />, label: "제작 과정" }
+            { icon: <Icons.CheckSquare />, label: "오늘 케어" }, { icon: <Icons.Calendar />, label: "종합 달력" },
+            { icon: <Icons.Card />, label: "지출 관리" }, { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
+            { icon: <Icons.Trash />, label: "휴지통" }, { icon: <Icons.Code />, label: "제작 과정" }
           ].map((item, idx) => (
             <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${tabIdx === idx ? 'text-[#A3E4D7]' : 'text-gray-400 hover:text-gray-600'}`}>
               <div className="mb-0.5">{item.icon}</div><span className="text-[9px] font-bold tracking-tighter scale-90 sm:scale-100">{item.label}</span>
