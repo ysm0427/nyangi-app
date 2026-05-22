@@ -40,6 +40,11 @@ export default function App() {
     meta.name = "viewport";
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
     document.getElementsByTagName('head')[0].appendChild(meta);
+
+    // 알림 권한 요청 공정
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   }, []);
 
   const getLocalData = (key, fallback) => {
@@ -127,6 +132,34 @@ export default function App() {
   useEffect(() => { localStorage.setItem('albums', JSON.stringify(albums)); }, [albums]);
   useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
 
+  // 실시간 알람 감지 백그라운드 워커 엔진 이식
+  useEffect(() => {
+    const checkAlarmClock = setInterval(() => {
+      const now = new Date();
+      const currentYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      schedules.forEach(sch => {
+        if (sch.date === currentYMD && sch.time === currentHM) {
+          const alarmKey = `alerted-${sch.id}-${currentHM}`;
+          if (!localStorage.getItem(alarmKey)) {
+            localStorage.setItem(alarmKey, 'true');
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification(`[냥이 스케줄 알람]`, {
+                body: `[${sch.cat}] ${sch.title} 시간입니다!`,
+                icon: profilePics[sch.cat] || ''
+              });
+            } else {
+              alert(`🔔 [${sch.cat} 알람] ${sch.title} 시간입니다!`);
+            }
+          }
+        }
+      });
+    }, 30000); // 30초마다 스케줄 동기화 확인
+
+    return () => clearInterval(checkAlarmClock);
+  }, [schedules, profilePics]);
+
   const currentCatData = cats.find(c => c.name === currentCat) || cats[0] || { name: '', birth: '2026-01-01', icon: '🐾', gender: '여아' };
 
   const getExpenseStats = () => {
@@ -198,7 +231,6 @@ export default function App() {
     }
   };
 
-  // 모바일 꾹~ 누르기(롱클릭)를 통한 사진 삭제 감지 함수
   const handleProfileLongPress = (e) => {
     e.preventDefault();
     if (!profilePics[currentCat]) return;
@@ -277,7 +309,6 @@ export default function App() {
         <button onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="ml-2 px-3 py-1.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm shrink-0">⚙️ 냥이 추가/수정</button>
       </div>
 
-      {/* 빨간 X 단추를 삭제하고 '꾹 누르면 삭제 창'이 뜨도록 개선한 프로필 영역 */}
       <div className="m-4 p-4 bg-white rounded-xl border border-[#A3E4D7] shadow-sm flex items-center gap-4 relative">
         <div 
           className="relative w-20 h-20 shrink-0 select-none touch-none"
@@ -308,7 +339,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* "오늘 누적" 문구 대신, 아빠님이 직접 설정한 단위가 깔끔하게 반응하도록 전면 수정한 메인 리스트 */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
         {(careItems[currentCat] || []).map((item, i) => {
           const todayRecords = careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || [];
@@ -477,7 +507,9 @@ export default function App() {
       <div className="p-4 flex flex-col gap-2 border-t border-gray-100 bg-white">
         <div className="flex gap-2">
           <label className="flex-1 py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
-          <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" capture="environment" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          
+          {/* 특정 뷰티/필터 카메라 연동을 위해 capture="environment" 제거 -> 폰 OS 자체 선택 팝업 유도 공정 */}
+          <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
         </div>
         <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`w-full py-2 font-bold rounded-xl text-xs ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '편집 완료' : '미디어 삭제/수정'}</button>
       </div>
@@ -506,24 +538,78 @@ export default function App() {
     </div>
   );
 
+  // 헤더 타이틀 명포트를 "제작 과정"으로 전면 일치 수정 완료
   const renderTab5 = () => (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-100 p-6 overflow-y-auto tracking-tight">
-      <div className="border-b border-slate-800 pb-4 mb-5"><span className="text-xs font-black bg-teal-500 text-teal-950 px-2 py-1 rounded">BUILD SYSTEM ARCHIVE</span><h2 className="text-2xl font-black mt-2 text-white flex items-center gap-2"><Icons.Code /> 냥이 앱 제작 비하인드</h2></div>
-      <div className="space-y-5 text-sm leading-relaxed">
-        <div className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
-          <h3 className="font-extrabold text-teal-400 mb-1.5 text-[15px]">💻 개발 환경 및 기술 스택</h3>
-          <div className="grid grid-cols-2 gap-2 mt-3 font-mono text-[11px]">
-            <div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Engine:</span> React 18</div><div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Style:</span> Tailwind CSS</div>
-            <div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Repository:</span> GitHub</div><div className="bg-slate-900 p-2 rounded border border-slate-800"><span className="text-teal-400 font-bold">Server:</span> Vercel Cloud</div>
+    <div className="flex flex-col h-full bg-slate-900 text-slate-100 p-5 overflow-y-auto tracking-tight select-text">
+      <div className="border-b border-slate-800 pb-4 mb-4">
+        <span className="text-[10px] font-black bg-teal-500 text-teal-950 px-2 py-0.5 rounded">SYSTEM ARCHIVE MANUAL</span>
+        <h2 className="text-xl font-black mt-1.5 text-white flex items-center gap-2"><Icons.Code /> 제작 과정</h2>
+        <p className="text-teal-400 text-xs font-bold mt-1">제작자: 벨라&로이 아빠</p>
+      </div>
+
+      <div className="space-y-4 text-xs leading-relaxed">
+        <div className="bg-slate-800/40 border border-slate-800 p-3 rounded-xl text-slate-300 italic">
+          "사랑하는 반려묘 벨라와 로이를 완벽하게 보살피기 위해 수많은 시행착오와 공정을 거쳐 탄생한 올인원 대시보드 시스템입니다. 다른 집사님들도 자유롭게 복사(Fork)하여 평생 무료 서버 환경을 구축해 보세요."
+        </div>
+
+        <div className="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl space-y-2">
+          <h3 className="font-extrabold text-teal-300 text-sm">🛠️ [1부] 내 전용 앱 서버 띄우기</h3>
+          <div className="space-y-1.5 text-slate-400 pl-1">
+            <p className="text-white font-bold">1. 저장소 가입</p>
+            <p className="pl-2">GitHub와 Vercel 공식 홈페이지에 각각 계정을 만듭니다.</p>
+            
+            <p className="text-white font-bold mt-1">2. 설계도 복사 (Fork)</p>
+            <p className="pl-2 font-mono text-[11px] text-teal-200">https://github.com/ysm0427/nyangi-app</p>
+            <p className="pl-2">위 주소의 우측 상단 <span className="text-white font-bold">[Fork]</span> -> <span className="text-white font-bold">[Create fork]</span>를 눌러 내 원장으로 복사해 옵니다.</p>
+            
+            <p className="text-white font-bold mt-1">3. Vercel 클라우드 연동</p>
+            <p className="pl-2">버셀 로그인 후 <span className="text-white font-bold">[Import]</span> 목록에서 <span className="text-teal-400 font-bold">nyangi-app</span>을 불러옵니다.</p>
+            
+            <p className="text-white font-bold mt-1">4. 환경변수 필수 우회 공정</p>
+            <p className="pl-2 text-rose-300 font-medium">※ 중요: [Environment Variables] 메뉴를 열고 아래 값을 추가한 뒤 [Add]를 누르세요.</p>
+            <p className="pl-4 font-mono text-[11px] text-slate-300">• Name: CI / Value: false</p>
+            
+            <p className="text-white font-bold mt-1">5. 클라우드 조립 완공</p>
+            <p className="pl-2">맨 아래 파란색 <span className="text-white font-bold">[Deploy]</span>를 누르고 30초 후 폭죽이 터지면 나만의 전용 앱 주소가 생성됩니다!</p>
           </div>
         </div>
-        <div className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl space-y-3">
-          <h3 className="font-extrabold text-teal-400 text-[15px]">🛠 아빠의 개발 고전분투기 (노고 기록)</h3>
-          <div className="border-l-2 border-teal-500/30 pl-3 space-y-2">
-            <div><h4 className="font-bold text-white text-xs">Step 1. 영구 안전 저장소 구축 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후 기기 자체 안전 금고인 localStorage를 연동하여 기기 종료 시에도 데이터 영구 보존 성공.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 2. 맞춤형 반응형 단위 필터 및 롱클릭 삭제 로직 개발 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">"0회" 누적 문구를 전면 철폐하고 유저가 자유롭게 기입한 단위가 다이렉트로 출력되도록 변환 모듈 장착. 메인 프로필 사진의 조작 가시성을 확보하기 위해 상시 X 마크를 숨기고, 꾹(롱터치) 누르면 반응하는 네이티브 제스처 핸들러 연동 탑재 완료.</p></div>
+
+        <div className="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl space-y-3">
+          <h3 className="font-extrabold text-teal-300 text-sm">📱 [2부] 6대 스마트 폴더 기능 설명서</h3>
+          
+          <div className="space-y-2 pl-1">
+            <div>
+              <h4 className="font-bold text-white text-xs">1. [오늘 케어] 대시보드 탭</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 위 설정 단추를 통해 다중 고양이를 무제한 등록하고 교체할 수 있습니다.</p>
+              <p className="text-slate-400 text-[11px]">• 새로운 항목 추가 시 <span className="text-teal-300">단위(kg, 알, ml)</span>를 지정하면 메인 카드에 입력값과 단위가 세트로 반응형 출력됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-amber-300">비밀 롱클릭 감지:</span> 프로필 사진을 1초간 꾹 누르면 깔끔하게 삭제/수정 창이 팝업됩니다.</p>
+            </div>
+
+            <div className="border-t border-slate-700/50 pt-2">
+              <h4 className="font-bold text-white text-xs">2. [종합 달력] 스케줄 탭 (실시간 알람 탑재)</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 집사가 지정한 고유 색상 도트가 자동 맵핑됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 진동 및 알림 브로드캐스트를 송출합니다.</p>
+            </div>
+
+            <div className="border-t border-slate-700/50 pt-2">
+              <h4 className="font-bold text-white text-xs">3. [지출 관리] 가계부 탭</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 물품 구매 비용을 등록하면 당월 누적 지출액과 연간 총액 통계를 소수점 없이 실시간 계산합니다.</p>
+            </div>
+
+            <div className="border-t border-slate-700/50 pt-2">
+              <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 초압축 미디어 탭</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 디바이스 자체의 <span className="text-teal-300">2D Canvas 압축 엔진</span>이 내장되어 사진 로딩 시 데이터 병목 없이 보관합니다.</p>
+              <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 다이렉트 센서 필터를 개방했습니다.</p>
+            </div>
+
+            <div className="border-t border-slate-700/50 pt-2">
+              <h4 className="font-bold text-white text-xs">5. [휴지통] 안전 복구 금고 탭</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 실수로 삭제한 모든 객체는 즉시 소멸하지 않고 휴지통에서 <span className="text-rose-300">30일간 유예 보관</span>됩니다.</p>
+            </div>
           </div>
         </div>
+
+        <p className="text-center text-[10px] text-slate-500 font-mono pt-2">© 2026 Bella & Roy Papa. All Rights Reserved.</p>
       </div>
     </div>
   );
