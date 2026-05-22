@@ -41,7 +41,6 @@ export default function App() {
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
     document.getElementsByTagName('head')[0].appendChild(meta);
 
-    // 알림 권한 요청 공정
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
@@ -56,7 +55,7 @@ export default function App() {
     }
   };
 
-  const compressImage = (base64Str, maxWidth = 400, quality = 0.6) => {
+  const compressImage = (base64Str, maxWidth = 500, quality = 0.5) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = base64Str;
@@ -113,6 +112,11 @@ export default function App() {
   const [albums, setAlbums] = useState(() => getLocalData('albums', {}));
   const [selectedMedia, setSelectedMedia] = useState(null);
 
+  // 🎨 각 폴더(탭) 및 기본 밑바탕 사진 배경 커스텀 메모리 금고 탑재
+  const [bgImages, setBgImages] = useState(() => getLocalData('bgImages', {
+    main: null, tab0: null, tab1: null, tab2: null, tab3: null, tab4: null, tab5: null
+  }));
+
   const [activeTracker, setActiveTracker] = useState(null);
   const [trackerDate, setTrackerDate] = useState(getTodayDateString());
   const [trackerInputAmount, setTrackerInputAmount] = useState('');
@@ -131,8 +135,9 @@ export default function App() {
   useEffect(() => { localStorage.setItem('schedules', JSON.stringify(schedules)); }, [schedules]);
   useEffect(() => { localStorage.setItem('albums', JSON.stringify(albums)); }, [albums]);
   useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
+  useEffect(() => { localStorage.setItem('bgImages', JSON.stringify(bgImages)); }, [bgImages]);
 
-  // 실시간 알람 감지 백그라운드 워커 엔진 이식
+  // 실시간 알람 동기화 워커
   useEffect(() => {
     const checkAlarmClock = setInterval(() => {
       const now = new Date();
@@ -155,7 +160,7 @@ export default function App() {
           }
         }
       });
-    }, 30000); // 30초마다 스케줄 동기화 확인
+    }, 30000);
 
     return () => clearInterval(checkAlarmClock);
   }, [schedules, profilePics]);
@@ -242,6 +247,26 @@ export default function App() {
     }
   };
 
+  // 🎨 대용량 배경화면 사진 초압축 업로드 핸들러 공정 연동
+  const handleBgImageUpload = (e, targetKey) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const compressed = await compressImage(event.target.result, 600, 0.4);
+        setBgImages({ ...bgImages, [targetKey]: compressed });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBgLongPress = (targetKey) => {
+    if (!bgImages[targetKey]) return;
+    if (window.confirm("이 화면에 지정된 테마 배경 사진을 지우고 기본 하얀 바탕으로 복원할까요?")) {
+      setBgImages({ ...bgImages, [targetKey]: null });
+    }
+  };
+
   const handleCustomIconUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -298,8 +323,27 @@ export default function App() {
     setTrackerInputAmount('');
   };
 
+  // 배경 입히는 마법의 CSS 주입기 공통 모듈
+  const getBgStyle = (key) => {
+    return bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.75)' } : {};
+  };
+
+  const renderBgEditButton = (key, label) => (
+    <div className="p-2 flex justify-center bg-white/60 backdrop-blur-xs shrink-0 border-t border-gray-100 gap-2">
+      <label className="text-[11px] font-black bg-slate-700 text-white px-3 py-1.5 rounded-lg shadow-xs cursor-pointer hover:bg-slate-800">
+        🖼️ {label} 배경 꾸미기
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, key)} />
+      </label>
+      {bgImages[key] && (
+        <button onClick={() => handleBgLongPress(key)} className="text-[11px] font-bold bg-red-100 text-red-600 px-2 py-1.5 rounded-lg border border-red-200">
+          지우기
+        </button>
+      )}
+    </div>
+  );
+
   const renderTab0 = () => (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full" style={getBgStyle('tab0')}>
       <div className="flex justify-between items-center p-3 bg-[#A3E4D7] bg-opacity-20 backdrop-blur-sm px-4">
         <div className="flex overflow-x-auto gap-2 scrollbar-hide flex-1">
           {cats.map((c) => (
@@ -309,15 +353,11 @@ export default function App() {
         <button onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="ml-2 px-3 py-1.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm shrink-0">⚙️ 냥이 추가/수정</button>
       </div>
 
-      <div className="m-4 p-4 bg-white rounded-xl border border-[#A3E4D7] shadow-sm flex items-center gap-4 relative">
+      <div className="m-4 p-4 bg-white/90 backdrop-blur-xs rounded-xl border border-[#A3E4D7] shadow-sm flex items-center gap-4 relative">
         <div 
           className="relative w-20 h-20 shrink-0 select-none touch-none"
           onContextMenu={handleProfileLongPress}
-          onTouchStart={(e) => {
-            window.profileLogTimeout = setTimeout(() => {
-              handleProfileLongPress(e);
-            }, 800);
-          }}
+          onTouchStart={(e) => { window.profileLogTimeout = setTimeout(() => { handleProfileLongPress(e); }, 800); }}
           onTouchEnd={() => clearTimeout(window.profileLogTimeout)}
         >
           {profilePics[currentCat] ? (
@@ -345,16 +385,14 @@ export default function App() {
           const total = todayRecords.reduce((sum, r) => sum + r.amount, 0);
           return (
             <div key={item.id} className="relative group">
-              <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="w-full bg-white hover:bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-sm flex items-center justify-between">
+              <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="w-full bg-white/90 hover:bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner border-2 overflow-hidden ${item.color === 'red' ? 'border-red-400' : item.color === 'orange' ? 'border-orange-400' : item.color === 'yellow' ? 'border-yellow-300' : item.color === 'green' ? 'border-green-400' : item.color === 'purple' ? 'border-purple-400' : 'border-blue-400'} bg-teal-50`}>
                     {item.isCustomImg ? ( <img src={item.icon} alt="ico" className="w-full h-full object-cover" /> ) : ( <span className="text-2xl">{item.icon}</span> )}
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-gray-800 text-lg">{item.title}</span>
-                    <span className="text-sm font-bold text-teal-600 mt-1">
-                      오늘 기록: {Number.isInteger(total) ? total : total.toFixed(1)} {item.unit || '회'}
-                    </span>
+                    <span className="text-sm font-bold text-teal-600 mt-1">오늘 기록: {Number.isInteger(total) ? total : total.toFixed(1)} {item.unit || '회'}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pr-2"><span className="bg-[#A3E4D7] text-teal-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm">기록하기 ❯</span></div>
@@ -364,8 +402,9 @@ export default function App() {
           );
         })}
       </div>
-      <div className="p-4 shrink-0 border-t border-gray-100 bg-white">
-        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3.5 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]"><span className="text-xl leading-none">+</span> 새로운 케어 항목 추가</button>
+      <div className="p-4 shrink-0 bg-white/40 flex flex-col gap-2">
+        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]">+ 새로운 케어 항목 추가</button>
+        {renderBgEditButton('tab0', '오늘 케어')}
       </div>
     </div>
   );
@@ -382,8 +421,8 @@ export default function App() {
     const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
 
     return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto">
-        <div className="bg-white px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
+      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto" style={getBgStyle('tab1')}>
+        <div className="bg-white/90 backdrop-blur-xs px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => handleMonthChange(-1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronLeft /></button>
             <span className="font-black text-xl text-gray-800">{dashYear}년 {dashMonth}월 종합 달력</span>
@@ -406,7 +445,7 @@ export default function App() {
               const hasSchedule = schedules.some(s => s.date === dateStr);
 
               return (
-                <button key={d} onClick={() => setDashboardDate(dateStr)} className={`flex flex-col items-center justify-between h-14 rounded-xl border p-1 ${dashboardDate === dateStr ? 'border-teal-400 bg-teal-50/80 ring-2 ring-teal-400/20' : 'border-transparent'}`}>
+                <button key={d} onClick={() => setDashboardDate(dateStr)} className={`flex flex-col items-center justify-between h-14 rounded-xl border p-1 ${dashboardDate === dateStr ? 'border-teal-400 bg-teal-50/80 ring-2 ring-teal-400/20' : 'border-transparent bg-white/40'}`}>
                   <span className="text-xs font-bold text-gray-700">{d}</span>
                   <div className="flex flex-col items-center gap-0.5 w-full">
                     {hasSchedule && <span className="w-full h-1 bg-amber-400 rounded-sm mb-0.5"></span>}
@@ -421,16 +460,16 @@ export default function App() {
         </div>
 
         <div className="flex-1 p-4 space-y-3">
-          <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2">
+          <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2 bg-white/60 p-1 rounded">
             <h3 className="font-extrabold text-gray-800 text-sm">{dashboardDate} 일정 현황</h3>
             <button onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }} className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm">+ 이 날짜에 일정 추가</button>
           </div>
           {targetDateSchedules.length === 0 ? (
-            <p className="text-center text-xs text-gray-400 py-8 bg-white rounded-xl border border-dashed">선택된 날짜에 등록된 일정이 없습니다.</p>
+            <p className="text-center text-xs text-gray-400 py-8 bg-white/80 rounded-xl border border-dashed">선택된 날짜에 등록된 일정이 없습니다.</p>
           ) : (
             <div className="space-y-2">
               {targetDateSchedules.map((sch, idx) => (
-                <div key={sch.id || idx} className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm flex justify-between items-center">
+                <div key={sch.id || idx} className="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-sm flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded">{sch.time}</span>
                     <span className="text-xs font-bold bg-gray-100 text-gray-600 px-1 rounded">{sch.cat}</span>
@@ -445,12 +484,13 @@ export default function App() {
             </div>
           )}
         </div>
+        {renderBgEditButton('tab1', '종합 달력')}
       </div>
     );
   };
 
   const renderTab2 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto">
+    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto" style={getBgStyle('tab2')}>
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
         <span className="text-xs font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
         <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
@@ -465,11 +505,11 @@ export default function App() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex justify-between items-center mb-3"><h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3><span className="text-xs text-gray-400 font-medium">총 건수: {expenses.length}건</span></div>
-        <div className="space-y-2 mb-3">
+      <div className="flex-1 bg-white/90 backdrop-blur-xs rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between">
+        <div className="overflow-y-auto max-h-[400px] w-full space-y-2 mb-3">
+          <div className="flex justify-between items-center mb-1"><h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3></div>
           {expenses.map((exp, i) => (
-            <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50/80 rounded-lg border border-gray-100">
               <div className="flex gap-3 items-center">
                 <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">{exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}</div>
                 <div><p className="font-bold text-gray-800 text-sm">{exp.detail}</p><p className="text-xs text-gray-500 font-black">{exp.amount.toLocaleString()}원</p></div>
@@ -480,19 +520,20 @@ export default function App() {
         </div>
         <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm transition-colors">+ 새로운 지출 내역 추가</button>
       </div>
+      {renderBgEditButton('tab2', '지출 관리')}
     </div>
   );
 
   const renderTab3 = () => (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="w-full p-3 bg-[#E8F8F5] border-b border-teal-100 flex justify-between items-center px-4"><p className="font-bold text-teal-700">보관된 미디어: {(albums[currentCat] || []).length}개</p></div>
+    <div className="flex flex-col h-full bg-gray-50" style={getBgStyle('tab3')}>
+      <div className="w-full p-3 bg-[#E8F8F5]/90 border-b border-teal-100 flex justify-between items-center px-4"><p className="font-bold text-teal-700">보관된 미디어: {(albums[currentCat] || []).length}개</p></div>
       <div className="flex-1 overflow-y-auto p-4">
         {(!albums[currentCat] || albums[currentCat].length === 0) ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60"><Icons.PhotoLibrary /><p className="text-sm font-bold">아직 추가된 사진/동영상이 없어요!</p></div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {albums[currentCat].map((item, i) => (
-              <div key={item.id || i} onClick={() => { if(!isAlbumEditMode) setSelectedMedia(item); }} className="aspect-square relative bg-gray-100 rounded-xl border border-gray-200 overflow-hidden shadow-sm cursor-pointer">
+              <div key={item.id || i} onClick={() => { if(!isAlbumEditMode) setSelectedMedia(item); }} className="aspect-square relative bg-white/40 rounded-xl border border-gray-200 overflow-hidden shadow-sm cursor-pointer">
                 {item.isVideo ? (
                   <div className="w-full h-full relative flex items-center justify-center bg-black"><video src={item.src} className="w-full h-full object-cover" muted playsInline /><span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded font-black">🎬 VIDEO</span></div>
                 ) : ( <img src={item.src} alt="cat" className="w-full h-full object-cover" /> )}
@@ -504,27 +545,26 @@ export default function App() {
           </div>
         )}
       </div>
-      <div className="p-4 flex flex-col gap-2 border-t border-gray-100 bg-white">
+      <div className="p-4 flex flex-col gap-2 bg-white/40">
         <div className="flex gap-2">
           <label className="flex-1 py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
-          
-          {/* 특정 뷰티/필터 카메라 연동을 위해 capture="environment" 제거 -> 폰 OS 자체 선택 팝업 유도 공정 */}
           <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
         </div>
         <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`w-full py-2 font-bold rounded-xl text-xs ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '편집 완료' : '미디어 삭제/수정'}</button>
+        {renderBgEditButton('tab3', '냥이 앨범')}
       </div>
     </div>
   );
 
   const renderTab4 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2><button onClick={() => { if(window.confirm("정말 휴지통을 영구적으로 완전히 비우시겠습니까?")) setTrashBin([]); }} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button></div>
-      {trashBin.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-2 py-12"><Icons.Trash /><p className="text-sm font-bold">휴지통이 비어있습니다.</p></div>
-      ) : (
-        <div className="space-y-3">
-          {trashBin.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto" style={getBgStyle('tab4')}>
+      <div className="flex justify-between items-center mb-4 bg-white/60 p-2 rounded-xl"><h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2><button onClick={() => { if(window.confirm("정말 휴지통을 영구적으로 완전히 비우시겠습니까?")) setTrashBin([]); }} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button></div>
+      <div className="flex-1 space-y-3">
+        {trashBin.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2 py-12"><Icons.Trash /><p className="text-sm font-bold">휴지통이 비어있습니다.</p></div>
+        ) : (
+          trashBin.map((item) => (
+            <div key={item.id} className="bg-white/90 p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
                 <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded mr-1.5">{item.type === 'schedule' ? '일정' : item.type === 'expense' ? '지출' : item.type === 'careItem' ? '케어' : '미디어'}</span>
                 <p className="text-sm font-bold text-gray-800 inline-block">{item.label}</p>
@@ -532,23 +572,23 @@ export default function App() {
               </div>
               <button onClick={() => restoreFromTrash(item.id)} className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"><Icons.Restore /> 복구</button>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
+      {renderBgEditButton('tab4', '휴지통')}
     </div>
   );
 
-  // 헤더 타이틀 명포트를 "제작 과정"으로 전면 일치 수정 완료
   const renderTab5 = () => (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-100 p-5 overflow-y-auto tracking-tight select-text">
+    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text" style={getBgStyle('tab5')}>
       <div className="border-b border-slate-800 pb-4 mb-4">
         <span className="text-[10px] font-black bg-teal-500 text-teal-950 px-2 py-0.5 rounded">SYSTEM ARCHIVE MANUAL</span>
         <h2 className="text-xl font-black mt-1.5 text-white flex items-center gap-2"><Icons.Code /> 제작 과정</h2>
         <p className="text-teal-400 text-xs font-bold mt-1">제작자: 벨라&로이 아빠</p>
       </div>
 
-      <div className="space-y-4 text-xs leading-relaxed">
-        <div className="bg-slate-800/40 border border-slate-800 p-3 rounded-xl text-slate-300 italic">
+      <div className="space-y-4 text-xs leading-relaxed flex-1">
+        <div className="bg-slate-800/60 border border-slate-800 p-3 rounded-xl text-slate-300 italic">
           "사랑하는 반려묘 벨라와 로이를 완벽하게 보살피기 위해 수많은 시행착오와 공정을 거쳐 탄생한 올인원 대시보드 시스템입니다. 다른 집사님들도 자유롭게 복사(Fork)하여 평생 무료 서버 환경을 구축해 보세요."
         </div>
 
@@ -557,18 +597,14 @@ export default function App() {
           <div className="space-y-1.5 text-slate-400 pl-1">
             <p className="text-white font-bold">1. 저장소 가입</p>
             <p className="pl-2">GitHub와 Vercel 공식 홈페이지에 각각 계정을 만듭니다.</p>
-            
             <p className="text-white font-bold mt-1">2. 설계도 복사 (Fork)</p>
             <p className="pl-2 font-mono text-[11px] text-teal-200">https://github.com/ysm0427/nyangi-app</p>
             <p className="pl-2">위 주소의 우측 상단 <span className="text-white font-bold">[Fork]</span> -> <span className="text-white font-bold">[Create fork]</span>를 눌러 내 원장으로 복사해 옵니다.</p>
-            
             <p className="text-white font-bold mt-1">3. Vercel 클라우드 연동</p>
             <p className="pl-2">버셀 로그인 후 <span className="text-white font-bold">[Import]</span> 목록에서 <span className="text-teal-400 font-bold">nyangi-app</span>을 불러옵니다.</p>
-            
             <p className="text-white font-bold mt-1">4. 환경변수 필수 우회 공정</p>
             <p className="pl-2 text-rose-300 font-medium">※ 중요: [Environment Variables] 메뉴를 열고 아래 값을 추가한 뒤 [Add]를 누르세요.</p>
             <p className="pl-4 font-mono text-[11px] text-slate-300">• Name: CI / Value: false</p>
-            
             <p className="text-white font-bold mt-1">5. 클라우드 조립 완공</p>
             <p className="pl-2">맨 아래 파란색 <span className="text-white font-bold">[Deploy]</span>를 누르고 30초 후 폭죽이 터지면 나만의 전용 앱 주소가 생성됩니다!</p>
           </div>
@@ -576,41 +612,36 @@ export default function App() {
 
         <div className="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl space-y-3">
           <h3 className="font-extrabold text-teal-300 text-sm">📱 [2부] 6대 스마트 폴더 기능 설명서</h3>
-          
           <div className="space-y-2 pl-1">
             <div>
               <h4 className="font-bold text-white text-xs">1. [오늘 케어] 대시보드 탭</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 우측 위 설정 단추를 통해 다중 고양이를 무제한 등록하고 교체할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• 새로운 항목 추가 시 <span className="text-teal-300">단위(kg, 알, ml)</span>를 지정하면 메인 카드에 입력값과 단위가 세트로 반응형 출력됩니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-amber-300">비밀 롱클릭 감지:</span> 프로필 사진을 1초간 꾹 누르면 깔끔하게 삭제/수정 창이 팝업됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• 새로운 항목 추가 시 단위(kg, 알, ml)를 지정하면 입력값과 단위가 똑같이 반응형 출력됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• 프로필 사진을 1초간 꾹 누르면 깔끔하게 삭제/수정 창이 팝업됩니다.</p>
             </div>
-
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">2. [종합 달력] 스케줄 탭 (실시간 알람 탑재)</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 집사가 지정한 고유 색상 도트가 자동 맵핑됩니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 진동 및 알림 브로드캐스트를 송출합니다.</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 고유 색상 도트가 자동 맵핑됩니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 진동 및 푸시 알림을 송출합니다.</p>
             </div>
-
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">3. [지출 관리] 가계부 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 물품 구매 비용을 등록하면 당월 누적 지출액과 연간 총액 통계를 소수점 없이 실시간 계산합니다.</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 물품 구매 비용을 등록하면 당월 누적 지출액과 연간 총액 통계를 실시간 계산합니다.</p>
             </div>
-
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 초압축 미디어 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 디바이스 자체의 <span className="text-teal-300">2D Canvas 압축 엔진</span>이 내장되어 사진 로딩 시 데이터 병목 없이 보관합니다.</p>
-              <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 다이렉트 센서 필터를 개방했습니다.</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 고화질 이미지 로딩 시 데이터 병목 없이 보관하기 위해 2D Canvas 압축 엔진을 가동합니다.</p>
+              <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 센서 필터를 전면 해제했습니다.</p>
             </div>
-
             <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">5. [휴지통] 안전 복구 금고 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 실수로 삭제한 모든 객체는 즉시 소멸하지 않고 휴지통에서 <span className="text-rose-300">30일간 유예 보관</span>됩니다.</p>
+              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 신기능] 배경 꾸미기 모듈</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 하단의 <span className="text-teal-300">배경 꾸미기</span> 버튼을 통해 전체 밑바탕 화면 및 각 탭 폴더마다 완전히 다른 사진이나 일러스트 그림을 독립적으로 커스텀 매핑할 수 있습니다.</p>
             </div>
           </div>
         </div>
-
         <p className="text-center text-[10px] text-slate-500 font-mono pt-2">© 2026 Bella & Roy Papa. All Rights Reserved.</p>
       </div>
+      {renderBgEditButton('tab5', '제작 과정')}
     </div>
   );
 
@@ -785,19 +816,35 @@ export default function App() {
   const tabs = [renderTab0(), renderTab1(), renderTab2(), renderTab3(), renderTab4(), renderTab5()];
 
   return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans">
-      <div className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900">
+    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
+      {/* 🏡 메인 큰 밑바탕 배경 사진 커스텀 영역 */}
+      <div 
+        className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
+        style={getBgStyle('main')}
+      >
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
-        <div className="flex justify-around items-center bg-white border-t border-gray-200 pb-safe pt-2 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0 h-16">
-          {[
-            { icon: <Icons.CheckSquare />, label: "오늘 케어" }, { icon: <Icons.Calendar />, label: "종합 달력" },
-            { icon: <Icons.Card />, label: "지출 관리" }, { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
-            { icon: <Icons.Trash />, label: "휴지통" }, { icon: <Icons.Code />, label: "제작 과정" }
-          ].map((item, idx) => (
-            <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${tabIdx === idx ? 'text-[#A3E4D7]' : 'text-gray-400 hover:text-gray-600'}`}>
-              <div className="mb-0.5">{item.icon}</div><span className="text-[9px] font-bold tracking-tighter scale-90 sm:scale-100">{item.label}</span>
-            </button>
-          ))}
+        
+        {/* 하단 공통 메뉴 바 단추 정렬 */}
+        <div className="flex flex-col bg-white/90 backdrop-blur-md border-t border-gray-200 pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0">
+          <div className="flex justify-around items-center h-14 pt-2 px-1">
+            {[
+              { icon: <Icons.CheckSquare />, label: "오늘 케어" }, { icon: <Icons.Calendar />, label: "종합 달력" },
+              { icon: <Icons.Card />, label: "지출 관리" }, { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
+              { icon: <Icons.Trash />, label: "휴지통" }, { icon: <Icons.Code />, label: "제작 과정" }
+            ].map((item, idx) => (
+              <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${tabIdx === idx ? 'text-[#44c7b1]' : 'text-gray-400 hover:text-gray-600'}`}>
+                <div className="mb-0.5 scale-95">{item.icon}</div><span className="text-[9px] font-bold tracking-tighter scale-90 sm:scale-100">{item.label}</span>
+              </button>
+            ))}
+          </div>
+          {/* 전체 큰 바탕화면 꾸미기용 히든 세팅 스위치 */}
+          <div className="py-1 text-center bg-gray-50 border-t border-gray-100 flex justify-center items-center gap-2">
+            <label className="text-[9px] text-gray-500 font-black cursor-pointer hover:underline">
+              🏡 전체 바탕 테마 변경
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, 'main')} />
+            </label>
+            {bgImages.main && <button onClick={() => handleBgLongPress('main')} className="text-[9px] text-red-500 font-bold hover:underline">[바탕 리셋]</button>}
+          </div>
         </div>
         {renderModal()} {renderTrackerScreen()} {renderMediaDetailModal()}
       </div>
