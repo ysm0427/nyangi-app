@@ -35,15 +35,28 @@ export default function App() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
+  const [vh, setVh] = useState(window.innerHeight * 0.01);
+
+  // 📱 모바일 폰 기기 화면을 강제로 상하좌우 꽉 고정시키는 뷰포트 아키텍처 공정
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
     document.getElementsByTagName('head')[0].appendChild(meta);
 
+    const updateVh = () => {
+      setVh(window.innerHeight * 0.01);
+    };
+    window.addEventListener('resize', updateVh);
+    window.addEventListener('orientationchange', updateVh);
+
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
+    return () => {
+      window.removeEventListener('resize', updateVh);
+      window.removeEventListener('orientationchange', updateVh);
+    };
   }, []);
 
   const getLocalData = (key, fallback) => {
@@ -545,13 +558,14 @@ export default function App() {
       </div>
       <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
         <div className="flex gap-2">
+          {/* ★ [카메라 선택 공정 최종 개선] input 태그의 capture 설정을 완전 봉쇄하여 스마트폰 OS 고유의 선택 시스템 팝업창을 100% 호출 */}
           <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.PhotoLibrary /> 앨범 선택
-            <input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+            <input type="file" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
           </label>
           <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.Camera /> 직접 촬영
-            <input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+            <input type="file" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
           </label>
           <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
         </div>
@@ -583,6 +597,7 @@ export default function App() {
     </div>
   );
 
+  // ★ [제작 과정 텍스트북 동기화 패치 완료]: 아빠님이 요청하신 모바일 전체화면 고정 및 카메라 필터 개방 내역 영구 기록식 저장
   const renderTab5 = () => (
     <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16" style={getBgStyle('tab5')}>
       <div className="border-b border-slate-800 pb-4 mb-4">
@@ -635,12 +650,12 @@ export default function App() {
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 초압축 미디어 탭</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 고화질 이미지 로딩 시 데이터 병목 없이 보관하기 위해 2D Canvas 압축 엔진을 가동합니다.</p>
-              <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 센서 필터를 전면 해제했습니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">외부 카메라 연동 패치:</span> 하드웨어 캡처 속성을 전면 철폐하고 스마트폰 OS 가용한 서드파티 카메라 앱(스노우 등 설치 브라우저) 선택 팝업을 전면 개방 완수.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
-              {/* ★ [제작 과정 동기화 완료]: 미니멀 캡슐 꾸미기 스위치 역사의 패치 내역을 설명서 최종 업데이트 */}
-              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 신기능] 미니멀 꾸미기 모듈</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 <span className="text-teal-300">🎨 꾸미기</span> 소형 단추로 화면을 깔끔하게 데코할 수 있으며, 지우고 싶을 땐 옆에 붙은 미니 휴지통 단추로 완전 삭제가 가능합니다.</p>
+              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 모바일 스케일 락 프리미엄 패치]</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 사진이나 일러스트 그림을 독립 매핑할 수 있습니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">모바일 뷰포트 고정 락:</span> 스마트폰 브라우저 특유의 상하단 바 스크롤 높이 왜곡을 무력화하기 위해 실시간 브라우저 이너 픽셀 높이를 수동 잠금 고정 조립 패치 완료.</p>
             </div>
           </div>
         </div>
@@ -822,9 +837,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
+      {/* 🏡 [모바일 잠금 프리미엄 공정] 자바스크립트로 유동적인 브라우저 창 높이를 실시간 제어하여 고정 */}
       <div 
-        className="w-full h-[100dvh] sm:max-w-md sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
-        style={getBgStyle('main')}
+        className="w-full sm:max-w-md bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
+        style={{ 
+          ...getBgStyle('main'),
+          height: window.innerWidth < 640 ? `calc(${vh}px * 100)` : '850px' 
+        }}
       >
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
         
