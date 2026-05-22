@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-  AddPhoto: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
+  AddPhoto: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" py="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
   Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
   ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
   ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
@@ -37,16 +37,28 @@ export default function App() {
 
   const [vh, setVh] = useState(window.innerHeight * 0.01);
 
-  // 📱 모바일 폰 기기 화면을 강제로 상하좌우 꽉 고정시키는 뷰포트 아키텍처 공정
+  // 🍏 [아이폰 홈 화면 추가 풀스크린 메타 시스템 패치]
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
     document.getElementsByTagName('head')[0].appendChild(meta);
 
+    // 아이폰 웹앱(홈 화면 독립 실행) 상태 감지 고정 메타 추가
+    const appMeta = document.createElement('meta');
+    appMeta.name = "apple-mobile-web-app-capable";
+    appMeta.content = "yes";
+    document.getElementsByTagName('head')[0].appendChild(appMeta);
+
+    const statusMeta = document.createElement('meta');
+    statusMeta.name = "apple-mobile-web-app-status-bar-style";
+    statusMeta.content = "black-translucent";
+    document.getElementsByTagName('head')[0].appendChild(statusMeta);
+
     const updateVh = () => {
       setVh(window.innerHeight * 0.01);
     };
+    updateVh();
     window.addEventListener('resize', updateVh);
     window.addEventListener('orientationchange', updateVh);
 
@@ -558,14 +570,15 @@ export default function App() {
       </div>
       <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
         <div className="flex gap-2">
-          {/* ★ [카메라 선택 공정 최종 개선] input 태그의 capture 설정을 완전 봉쇄하여 스마트폰 OS 고유의 선택 시스템 팝업창을 100% 호출 */}
+          {/* 📂 사진 보관함 선택 단추 */}
           <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.PhotoLibrary /> 앨범 선택
-            <input type="file" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+            <input type="file" onChange={(e) => handleMediaUpload(e, "사진첩 📂")} className="hidden" />
           </label>
+          {/* ★ [카메라 직접 촬영 특수 패치 공정 완공]: 폰 보관함 메뉴를 우회하고 오직 렌즈 촬영 기능만 OS 팝업으로 유도 */}
           <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
             <Icons.Camera /> 직접 촬영
-            <input type="file" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+            <input type="file" accept="image/*" capture="camera" onChange={(e) => handleMediaUpload(e, "현장 촬영 📸")} className="hidden" />
           </label>
           <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
         </div>
@@ -597,7 +610,7 @@ export default function App() {
     </div>
   );
 
-  // ★ [제작 과정 텍스트북 동기화 패치 완료]: 아빠님이 요청하신 모바일 전체화면 고정 및 카메라 필터 개방 내역 영구 기록식 저장
+  // ★ [제작 과정 동기화 대대적 패치]: 아빠님이 요청하신 아이폰 홈 화면 고정 및 카메라 필터 개방 내역 영구 기록식 저장
   const renderTab5 = () => (
     <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16" style={getBgStyle('tab5')}>
       <div className="border-b border-slate-800 pb-4 mb-4">
@@ -641,7 +654,7 @@ export default function App() {
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">2. [종합 달력] 스케줄 탭 (실시간 알람 탑재)</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 고유 색상 도트가 자동 맵핑됩니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 진동 및 푸시 알림을 송출합니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">타임 클락 알림:</span> 예약을 추가한 후 해당 시간이 도래하면 백그라운드 스케줄러가 반응하여 푸시 알림을 송출합니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">3. [지출 관리] 가계부 탭</h4>
@@ -649,13 +662,13 @@ export default function App() {
             </div>
             <div className="border-t border-slate-700/50 pt-2">
               <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 초압축 미디어 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 고화질 이미지 로딩 시 데이터 병목 없이 보관하기 위해 2D Canvas 압축 엔진을 가동합니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">외부 카메라 연동 패치:</span> 하드웨어 캡처 속성을 전면 철폐하고 스마트폰 OS 가용한 서드파티 카메라 앱(스노우 등 설치 브라우저) 선택 팝업을 전면 개방 완수.</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 고화질 이미지 보관을 위해 2D Canvas 압축 엔진을 가동합니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">다이렉트 렌더 촬영 특수 개조:</span> 보관함이나 파일 뒤적거림 메뉴를 완벽하게 차단하고 스마트폰 OS 가용한 다이렉트 촬영 인터페이스 렌즈 레이어를 개방 조립 완료.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 모바일 스케일 락 프리미엄 패치]</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 사진이나 일러스트 그림을 독립 매핑할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">모바일 뷰포트 고정 락:</span> 스마트폰 브라우저 특유의 상하단 바 스크롤 높이 왜곡을 무력화하기 위해 실시간 브라우저 이너 픽셀 높이를 수동 잠금 고정 조립 패치 완료.</p>
+              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 아이폰 홈화면 스케일 잠금 프리미엄 패치]</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 사진을 독립 매핑할 수 있습니다.</p>
+              <p className="text-slate-400 text-[11px]">• <span className="text-teal-300">iOS 단독 실행형 뷰포트 고정 락:</span> 사파리 브라우저에서 '홈 화면에 추가'를 눌러 전체화면 앱 모드로 구동할 시 위아래 여백이 일그러지거나 쪼그라드는 현상을 방지하는 애플 규격 `standalone` 풀스크린 매커니즘 패치 완료.</p>
             </div>
           </div>
         </div>
@@ -837,7 +850,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
-      {/* 🏡 [모바일 잠금 프리미엄 공정] 자바스크립트로 유동적인 브라우저 창 높이를 실시간 제어하여 고정 */}
+      {/* 🏡 [아이폰 홈화면 standalone 스케일 엔진 최종 완공] */}
       <div 
         className="w-full sm:max-w-md bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
         style={{ 
