@@ -51,7 +51,6 @@ export default function App() {
     }
   };
 
-  // 사진 이미지 용량을 엄청나게 작게 다이어트 시켜주는 마법의 압축기 함수
   const compressImage = (base64Str, maxWidth = 400, quality = 0.6) => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -94,7 +93,7 @@ export default function App() {
     "벨라": [
       { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
       { id: "brush", title: "렉돌 코트 빗질", icon: "🪮", isCustomImg: false, unit: "회", color: "purple" },
-      { id: "pill", title: "영양제 챙기기", icon: "💊", isCustomImg: false, unit: "회", color: "red" }
+      { id: "pill", title: "영양제 챙기기", icon: "💊", isCustomImg: false, unit: "알", color: "red" }
     ],
     "로이": [
       { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
@@ -115,7 +114,7 @@ export default function App() {
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null, fileEvent: null });
   const [formData, setFormData] = useState({ 
-    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
+    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue',
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
@@ -192,11 +191,22 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        // 프로필 사진 초압축 저장
         const compressed = await compressImage(event.target.result, 200, 0.5);
         setProfilePics({ ...profilePics, [currentCat]: compressed });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // 모바일 꾹~ 누르기(롱클릭)를 통한 사진 삭제 감지 함수
+  const handleProfileLongPress = (e) => {
+    e.preventDefault();
+    if (!profilePics[currentCat]) return;
+    const isConfirmed = window.confirm(`[사진 변경/삭제] ${currentCat}의 프로필 사진을 완전히 삭제하시겠습니까?`);
+    if (isConfirmed) {
+      const newPics = { ...profilePics };
+      delete newPics[currentCat];
+      setProfilePics(newPics);
     }
   };
 
@@ -205,7 +215,6 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        // 커스텀 단추 아이콘 초압축
         const compressed = await compressImage(event.target.result, 120, 0.5);
         setFormData({ ...formData, icon: compressed, isCustomImg: true });
       };
@@ -221,12 +230,11 @@ export default function App() {
       reader.onload = async (event) => {
         let finalSrc = event.target.result;
         if (!isVideo) {
-          // 일반 앨범 사진을 100분의 1 용량으로 초압축 가공
           finalSrc = await compressImage(event.target.result, 500, 0.5);
         }
         const newMedia = { id: Date.now().toString(), src: finalSrc, isVideo, date: getTodayDateString(), location: locationStr };
         setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), newMedia] });
-        setModalState({ isOpen: false, type: null, fileEvent: null }); // 먹통 방지 즉시 강제 종료창 닫기
+        setModalState({ isOpen: false, type: null, fileEvent: null });
       };
       reader.readAsDataURL(file);
     }
@@ -269,13 +277,20 @@ export default function App() {
         <button onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="ml-2 px-3 py-1.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm shrink-0">⚙️ 냥이 추가/수정</button>
       </div>
 
+      {/* 빨간 X 단추를 삭제하고 '꾹 누르면 삭제 창'이 뜨도록 개선한 프로필 영역 */}
       <div className="m-4 p-4 bg-white rounded-xl border border-[#A3E4D7] shadow-sm flex items-center gap-4 relative">
-        <div className="relative w-20 h-20 shrink-0">
+        <div 
+          className="relative w-20 h-20 shrink-0 select-none touch-none"
+          onContextMenu={handleProfileLongPress}
+          onTouchStart={(e) => {
+            window.profileLogTimeout = setTimeout(() => {
+              handleProfileLongPress(e);
+            }, 800);
+          }}
+          onTouchEnd={() => clearTimeout(window.profileLogTimeout)}
+        >
           {profilePics[currentCat] ? (
-            <>
-              <img src={profilePics[currentCat]} alt="profile" className="w-full h-full rounded-full object-cover border-2 border-[#A3E4D7]" />
-              <button onClick={() => setProfilePics({ ...profilePics, [currentCat]: null })} className="absolute -top-1 -right-1 w-6 h-6 bg-red-400 text-white rounded-full flex items-center justify-center text-xs shadow-sm z-10"><Icons.Close /></button>
-            </>
+            <img src={profilePics[currentCat]} alt="profile" className="w-full h-full rounded-full object-cover border-2 border-[#A3E4D7]" />
           ) : (
             <label className="flex items-center justify-center w-full h-full bg-gray-100 rounded-full cursor-pointer border-2 border-dashed border-gray-300 group">
               <span className="text-3xl">{currentCatData.icon}</span>
@@ -293,6 +308,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* "오늘 누적" 문구 대신, 아빠님이 직접 설정한 단위가 깔끔하게 반응하도록 전면 수정한 메인 리스트 */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
         {(careItems[currentCat] || []).map((item, i) => {
           const todayRecords = careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || [];
@@ -306,7 +322,9 @@ export default function App() {
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-gray-800 text-lg">{item.title}</span>
-                    <span className="text-xs text-gray-500 font-medium mt-0.5">오늘 누적: <strong className="text-teal-600">{Number.isInteger(total) ? total : total.toFixed(1)} {item.unit}</strong></span>
+                    <span className="text-sm font-bold text-teal-600 mt-1">
+                      오늘 기록: {Number.isInteger(total) ? total : total.toFixed(1)} {item.unit || '회'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pr-2"><span className="bg-[#A3E4D7] text-teal-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm">기록하기 ❯</span></div>
@@ -502,8 +520,8 @@ export default function App() {
         <div className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl space-y-3">
           <h3 className="font-extrabold text-teal-400 text-[15px]">🛠 아빠의 개발 고전분투기 (노고 기록)</h3>
           <div className="border-l-2 border-teal-500/30 pl-3 space-y-2">
-            <div><h4 className="font-bold text-white text-xs">Step 1. 영구 안전 저장소 구축 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후 기기 자체 안전 금고인 localStorage를 연동하여 기기 종료 시에도 데이터 영구 마이그레이션 및 동기화 구현.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 2. 폰 화면 돋보기 방지 및 대용량 압축 엔진 탑재 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">모바일 글자창 확대 버그 및 키보드 오작동 패치 완수. 고화질 사진 업로드 시 발생하는 스마트폰 용량 한도 초과 오류를 차단하기 위해 100분의 1 스케일 자동 이미지 JPEG 초압축 렌더러 탑재 완료.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 1. 영구 안전 저장소 구축 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후 기기 자체 안전 금고인 localStorage를 연동하여 기기 종료 시에도 데이터 영구 보존 성공.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 2. 맞춤형 반응형 단위 필터 및 롱클릭 삭제 로직 개발 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">"0회" 누적 문구를 전면 철폐하고 유저가 자유롭게 기입한 단위가 다이렉트로 출력되도록 변환 모듈 장착. 메인 프로필 사진의 조작 가시성을 확보하기 위해 상시 X 마크를 숨기고, 꾹(롱터치) 누르면 반응하는 네이티브 제스처 핸들러 연동 탑재 완료.</p></div>
           </div>
         </div>
       </div>
@@ -511,22 +529,22 @@ export default function App() {
   );
 
   const renderTrackerScreen = () => {
-    const isOpen = activeTracker !== null; const tracker = activeTracker || { id: '', title: '', unit: '', icon: '', isCustomImg: false };
+    const isOpen = activeTracker !== null; const tracker = activeTracker || { id: '', title: '', unit: '회', icon: '', isCustomImg: false };
     const dailyRecords = (careRecords[currentCat]?.[tracker.id]?.[trackerDate]) || [];
     const totalAmount = dailyRecords.reduce((sum, record) => sum + record.amount, 0);
     return (
       <div className={`absolute inset-0 bg-gray-50 z-40 transition-transform duration-300 transform flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex items-center p-4 bg-white border-b border-gray-200 shrink-0 shadow-sm"><button onClick={() => setActiveTracker(null)} className="p-2 -ml-2 text-gray-600"><Icons.ChevronLeft /></button><h2 className="flex-1 text-center font-bold text-lg text-gray-800 mr-8">{currentCat} {tracker.title} 기록</h2></div>
         <div className="flex-1 overflow-y-auto p-4 flex flex-col">
-          <p className="text-4xl font-black text-teal-600 text-center py-6">{totalAmount}<span className="text-2xl text-teal-400 font-bold ml-1">{tracker.unit}</span></p>
+          <p className="text-4xl font-black text-teal-600 text-center py-6">{Number.isInteger(totalAmount) ? totalAmount : totalAmount.toFixed(1)}<span className="text-2xl text-teal-400 font-bold ml-1">{tracker.unit || '회'}</span></p>
           <div className="flex gap-2 mb-4">
-            <input type="number" placeholder={`직접 입력 (${tracker.unit})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
+            <input type="number" placeholder={`직접 입력 (${tracker.unit || '회'})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
             <button onClick={() => handleAddRecord(trackerInputAmount)} className="px-6 py-2.5 bg-[#A3E4D7] font-bold rounded-xl shadow-sm text-base">등록</button>
           </div>
           <div className="space-y-2">
             {dailyRecords.map((record, i) => (
               <div key={i} className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p className="font-bold text-gray-800 text-base">{record.amount} {tracker.unit} <span className="text-xs text-gray-400 ml-2">{record.time}</span></p>
+                <p className="font-bold text-gray-800 text-base">{record.amount} {tracker.unit || '회'} <span className="text-xs text-gray-400 ml-2">{record.time}</span></p>
                 <button onClick={() => {
                   if(window.confirm("이 기록을 삭제하시겠습니까?")) {
                     const newRecords = { ...careRecords };
@@ -597,13 +615,7 @@ export default function App() {
               </div>
             )}
 
-            {modalState.type === 'addMediaFile' && (
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-gray-400">📍 촬영된 위치 정보를 기록해 주세요</p>
-                <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" />
-                <p className="text-center text-xs text-amber-500 font-bold bg-amber-50 py-1.5 rounded border">※ 대용량 원본 자동 파워 압축 엔진 구동 중 🚀</p>
-              </div>
-            )}
+            {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
             {modalState.type === 'expense' && (
               <>
                 <p className="text-xs font-bold text-gray-500">📅 소비 날짜 선택</p>
@@ -645,7 +657,7 @@ export default function App() {
             )}
 
             {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder={modalState.type === 'expense' ? "예: 사료 구입, 캣쇼 참가비" : "내용을 입력하세요"} value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
-            {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 (예: 회, ml, g)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
+            {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 지정 (예: kg, 알, ml, 번)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
             {modalState.type === 'expense' && ( <input type="number" placeholder="금액 (숫자만)" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
           </div>
           <div className="px-5 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
