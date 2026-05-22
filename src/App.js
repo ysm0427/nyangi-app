@@ -35,7 +35,6 @@ export default function App() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
-  // 모바일 화면 확대 방지 메타태그 강제 고정
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
@@ -50,6 +49,29 @@ export default function App() {
     } catch (e) {
       return fallback;
     }
+  };
+
+  // 사진 이미지 용량을 엄청나게 작게 다이어트 시켜주는 마법의 압축기 함수
+  const compressImage = (base64Str, maxWidth = 400, quality = 0.6) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(base64Str);
+    });
   };
 
   const [cats, setCats] = useState(() => getLocalData('cats', [
@@ -91,13 +113,12 @@ export default function App() {
   const [trackerDate, setTrackerDate] = useState(getTodayDateString());
   const [trackerInputAmount, setTrackerInputAmount] = useState('');
 
-  const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null });
+  const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null, fileEvent: null });
   const [formData, setFormData] = useState({ 
     title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
-  // 스마트폰 비밀 금고(로컬스토리지) 실시간 강제 보관 기능
   useEffect(() => { localStorage.setItem('cats', JSON.stringify(cats)); }, [cats]);
   useEffect(() => { localStorage.setItem('profilePics', JSON.stringify(profilePics)); }, [profilePics]);
   useEffect(() => { localStorage.setItem('careItems', JSON.stringify(careItems)); }, [careItems]);
@@ -170,7 +191,11 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => setProfilePics({ ...profilePics, [currentCat]: event.target.result });
+      reader.onload = async (event) => {
+        // 프로필 사진 초압축 저장
+        const compressed = await compressImage(event.target.result, 200, 0.5);
+        setProfilePics({ ...profilePics, [currentCat]: compressed });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -179,7 +204,11 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => setFormData({ ...formData, icon: event.target.result, isCustomImg: true });
+      reader.onload = async (event) => {
+        // 커스텀 단추 아이콘 초압축
+        const compressed = await compressImage(event.target.result, 120, 0.5);
+        setFormData({ ...formData, icon: compressed, isCustomImg: true });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -187,10 +216,17 @@ export default function App() {
   const handleMediaUpload = (e, locationStr = "우리집 🏠") => {
     const file = e.target.files[0];
     if (file) {
-      const isVideo = file.type.startsWith('video/'); const reader = new FileReader();
-      reader.onload = (event) => {
-        const newMedia = { id: Date.now().toString(), src: event.target.result, isVideo, date: getTodayDateString(), location: locationStr };
+      const isVideo = file.type.startsWith('video/'); 
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        let finalSrc = event.target.result;
+        if (!isVideo) {
+          // 일반 앨범 사진을 100분의 1 용량으로 초압축 가공
+          finalSrc = await compressImage(event.target.result, 500, 0.5);
+        }
+        const newMedia = { id: Date.now().toString(), src: finalSrc, isVideo, date: getTodayDateString(), location: locationStr };
         setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), newMedia] });
+        setModalState({ isOpen: false, type: null, fileEvent: null }); // 먹통 방지 즉시 강제 종료창 닫기
       };
       reader.readAsDataURL(file);
     }
@@ -466,8 +502,8 @@ export default function App() {
         <div className="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl space-y-3">
           <h3 className="font-extrabold text-teal-400 text-[15px]">🛠 아빠의 개발 고전분투기 (노고 기록)</h3>
           <div className="border-l-2 border-teal-500/30 pl-3 space-y-2">
-            <div><h4 className="font-bold text-white text-xs">Step 1. 시스템 인프라 및 금고 연동 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후, 기기 자체 안전 금고인 localStorage를 구축하여 껐다 켜도 데이터가 평생 소멸하지 않는 자동 영구 저장 메커니즘 전면 탑재 성공.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 2. 모바일 화면 최적화 및 키보드 버그 수정</h4><p className="text-slate-400 text-[11px] mt-0.5">스마트폰 텍스트창 입력 시 발생하는 자동 화면 확대(Zoom in) 현상을 차단하고, 모바일 키보드 자수 제한 현상을 방지하기 위해 특수 타입 필터를 제거하여 무제한 금액 입력 패치 완수.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 1. 영구 안전 저장소 구축 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후 기기 자체 안전 금고인 localStorage를 연동하여 기기 종료 시에도 데이터 영구 마이그레이션 및 동기화 구현.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 2. 폰 화면 돋보기 방지 및 대용량 압축 엔진 탑재 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">모바일 글자창 확대 버그 및 키보드 오작동 패치 완수. 고화질 사진 업로드 시 발생하는 스마트폰 용량 한도 초과 오류를 차단하기 위해 100분의 1 스케일 자동 이미지 JPEG 초압축 렌더러 탑재 완료.</p></div>
           </div>
         </div>
       </div>
@@ -519,7 +555,7 @@ export default function App() {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl w-full max-w-[340px] shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-black text-base text-gray-800">{title}</h3><button onClick={() => setModalState({ isOpen: false, type: null })} className="text-gray-400 hover:text-gray-600"><Icons.Close /></button></div>
+          <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-black text-base text-gray-800">{title}</h3><button onClick={() => setModalState({ isOpen: false, type: null, fileEvent: null })} className="text-gray-400 hover:text-gray-600"><Icons.Close /></button></div>
           <div className="p-5 space-y-3 max-h-[450px] overflow-y-auto">
             {modalState.type === 'manageCats' && (
               <div className="space-y-4">
@@ -561,7 +597,13 @@ export default function App() {
               </div>
             )}
 
-            {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
+            {modalState.type === 'addMediaFile' && (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-gray-400">📍 촬영된 위치 정보를 기록해 주세요</p>
+                <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" />
+                <p className="text-center text-xs text-amber-500 font-bold bg-amber-50 py-1.5 rounded border">※ 대용량 원본 자동 파워 압축 엔진 구동 중 🚀</p>
+              </div>
+            )}
             {modalState.type === 'expense' && (
               <>
                 <p className="text-xs font-bold text-gray-500">📅 소비 날짜 선택</p>
@@ -615,7 +657,7 @@ export default function App() {
                 else if (modalState.type === 'expense' && formData.title && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), date: formData.date, detail: formData.title, amount: Number(formData.amount) }]);
                 else if (modalState.type === 'schedule' && formData.title) setSchedules([...schedules, { id: Date.now().toString(), cat: formData.cat || currentCat, date: formData.date, time: formData.time, title: formData.title }]);
                 else if (modalState.type === 'editSchedule') setSchedules(schedules.map(s => s.id === modalState.targetId ? { ...s, title: formData.title, date: formData.date, time: formData.time, cat: formData.cat } : s));
-                setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null });
+                if (modalState.type !== 'addMediaFile') setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null });
               }} className="px-4 py-2 text-base font-bold bg-[#A3E4D7] text-gray-800 hover:bg-[#8fd9cb] rounded-lg">저장 및 추가</button>
             )}
           </div>
