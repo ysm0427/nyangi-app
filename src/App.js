@@ -35,7 +35,7 @@ export default function App() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
-  // 폰 화면 돋보기 방지 메타태그 강제 주입
+  // 모바일 화면 확대 방지 메타태그 강제 고정
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
@@ -43,7 +43,6 @@ export default function App() {
     document.getElementsByTagName('head')[0].appendChild(meta);
   }, []);
 
-  // 로컬스토리지에서 안전하게 데이터를 불러오는 함수
   const getLocalData = (key, fallback) => {
     const saved = localStorage.getItem(key);
     try {
@@ -98,7 +97,7 @@ export default function App() {
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
-  // 데이터가 바뀔 때마다 자동으로 비밀 금고(로컬스토리지)에 실시간 강제 저장
+  // 스마트폰 비밀 금고(로컬스토리지) 실시간 강제 보관 기능
   useEffect(() => { localStorage.setItem('cats', JSON.stringify(cats)); }, [cats]);
   useEffect(() => { localStorage.setItem('profilePics', JSON.stringify(profilePics)); }, [profilePics]);
   useEffect(() => { localStorage.setItem('careItems', JSON.stringify(careItems)); }, [careItems]);
@@ -468,7 +467,7 @@ export default function App() {
           <h3 className="font-extrabold text-teal-400 text-[15px]">🛠 아빠의 개발 고전분투기 (노고 기록)</h3>
           <div className="border-l-2 border-teal-500/30 pl-3 space-y-2">
             <div><h4 className="font-bold text-white text-xs">Step 1. 시스템 인프라 및 금고 연동 완료</h4><p className="text-slate-400 text-[11px] mt-0.5">Vercel 플랫폼 이주 후, 기기 자체 안전 금고인 localStorage를 구축하여 껐다 켜도 데이터가 평생 소멸하지 않는 자동 영구 저장 메커니즘 전면 탑재 성공.</p></div>
-            <div><h4 className="font-bold text-white text-xs">Step 2. 모바일 화면 최적화 공정</h4><p className="text-slate-400 text-[11px] mt-0.5">스마트폰 텍스트창 입력 시 발생하는 특유의 자동 화면 확대(Zoom in) 현상을 완벽 차단하는 고정형 뷰포트 아키텍처 및 16px 규격 폼 전면 개정 완료.</p></div>
+            <div><h4 className="font-bold text-white text-xs">Step 2. 모바일 화면 최적화 및 키보드 버그 수정</h4><p className="text-slate-400 text-[11px] mt-0.5">스마트폰 텍스트창 입력 시 발생하는 자동 화면 확대(Zoom in) 현상을 차단하고, 모바일 키보드 자수 제한 현상을 방지하기 위해 특수 타입 필터를 제거하여 무제한 금액 입력 패치 완수.</p></div>
           </div>
         </div>
       </div>
@@ -485,7 +484,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-4 flex flex-col">
           <p className="text-4xl font-black text-teal-600 text-center py-6">{totalAmount}<span className="text-2xl text-teal-400 font-bold ml-1">{tracker.unit}</span></p>
           <div className="flex gap-2 mb-4">
-            <input type="number" step="any" placeholder={`직접 입력 (${tracker.unit})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
+            <input type="number" placeholder={`직접 입력 (${tracker.unit})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
             <button onClick={() => handleAddRecord(trackerInputAmount)} className="px-6 py-2.5 bg-[#A3E4D7] font-bold rounded-xl shadow-sm text-base">등록</button>
           </div>
           <div className="space-y-2">
