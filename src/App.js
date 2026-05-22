@@ -38,7 +38,7 @@ export default function App() {
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = "viewport";
-    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
     document.getElementsByTagName('head')[0].appendChild(meta);
 
     if ("Notification" in window && Notification.permission === "default") {
@@ -122,7 +122,7 @@ export default function App() {
 
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null, fileEvent: null });
   const [formData, setFormData] = useState({ 
-    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue',
+    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
     location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
   });
 
@@ -322,7 +322,6 @@ export default function App() {
     return bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.72)' } : {};
   };
 
-  // ★ 아빠님 맞춤형 소형 플로팅 테마 꾸미기 아이콘 박스 공정 개조
   const renderBgEditButton = (key) => (
     <div className="absolute bottom-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-md border border-gray-100 transition-all active:scale-95">
       <label className="text-[11px] font-black text-slate-700 flex items-center gap-1 cursor-pointer">
@@ -330,7 +329,7 @@ export default function App() {
         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, key)} />
       </label>
       {bgImages[key] && (
-        <button onClick={() => { if(window.confirm("이 화면의 배경 사진을 지우겠습니까?")) handleBgLongPress(key); }} className="text-red-500 font-bold ml-1.5 pl-1.5 border-l border-gray-300 text-[11px] flex items-center justify-center" title="배경 지우기">
+        <button onClick={() => { if(window.confirm("이 화면의 배경 사진을 지우겠습니까?")) handleBgLongPress(key); }} className="text-red-500 font-bold ml-1.5 pl-1.5 border-l border-gray-300 text-[11px] flex items-center justify-center">
           <Icons.Trash />
         </button>
       )}
@@ -378,6 +377,10 @@ export default function App() {
         {(careItems[currentCat] || []).map((item, i) => {
           const todayRecords = careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || [];
           const total = todayRecords.reduce((sum, r) => sum + r.amount, 0);
+          
+          const displayUnit = item.unit ? item.unit.trim() : '회';
+          const cleanDisplay = (total === 0) ? `${displayUnit}` : `${Number.isInteger(total) ? total : total.toFixed(1)} ${displayUnit}`;
+
           return (
             <div key={item.id} className="relative group">
               <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="w-full bg-white/90 hover:bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center justify-between">
@@ -387,7 +390,7 @@ export default function App() {
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-gray-800 text-lg">{item.title}</span>
-                    <span className="text-sm font-bold text-teal-600 mt-1">오늘 기록: {Number.isInteger(total) ? total : total.toFixed(1)} {item.unit || '회'}</span>
+                    <span className="text-sm font-bold text-teal-600 mt-1">오늘 기록: {cleanDisplay}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pr-2"><span className="bg-[#A3E4D7] text-teal-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm">기록하기 ❯</span></div>
@@ -398,7 +401,7 @@ export default function App() {
         })}
       </div>
       <div className="p-4 shrink-0 bg-white/20 border-t border-transparent">
-        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]">+ 새로운 케어 항목 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]">+ 새로운 케어 항목 추가</button>
       </div>
       {renderBgEditButton('tab0')}
     </div>
@@ -542,8 +545,14 @@ export default function App() {
       </div>
       <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
         <div className="flex gap-2">
-          <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
-          <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
+            <Icons.PhotoLibrary /> 앨범 선택
+            <input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+          </label>
+          <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
+            <Icons.Camera /> 직접 촬영
+            <input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" />
+          </label>
           <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
         </div>
       </div>
@@ -629,6 +638,7 @@ export default function App() {
               <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 센서 필터를 전면 해제했습니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
+              {/* ★ [제작 과정 동기화 완료]: 미니멀 캡슐 꾸미기 스위치 역사의 패치 내역을 설명서 최종 업데이트 */}
               <h4 className="font-bold text-white text-xs">5. [테마 커스텀 신기능] 미니멀 꾸미기 모듈</h4>
               <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 <span className="text-teal-300">🎨 꾸미기</span> 소형 단추로 화면을 깔끔하게 데코할 수 있으며, 지우고 싶을 땐 옆에 붙은 미니 휴지통 단추로 완전 삭제가 가능합니다.</p>
             </div>
@@ -813,7 +823,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
       <div 
-        className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
+        className="w-full h-[100dvh] sm:max-w-md sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
         style={getBgStyle('main')}
       >
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
