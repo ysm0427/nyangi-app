@@ -23,31 +23,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 select-none">
-       {/* 화면 꽉 참 고정 스타일 */}
        <div className="w-full sm:max-w-md bg-white overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900" 
             style={{ height: `calc(${vh}px * 100)` }}>
           
-          {/* 상단 노치 간섭 방지 pt-10 */}
           <div className="flex-1 overflow-y-auto pt-10">
-            {tabIdx === 0 && <div className="p-4">오늘 케어 화면</div>}
-            
-            {/* 앨범 탭일 때 카메라 팝업 개방 */}
-            {tabIdx === 3 && (
-               <label className="flex items-center gap-2 cursor-pointer p-4 bg-teal-500 text-white rounded-xl font-bold">
-                  <Icons.Camera /> 직접 촬영
-                  {/* capture 속성을 제거하여 OS 기본 카메라 선택기 호출 */}
-                  <input type="file" accept="image/*" onChange={(e) => {
-                     const file = e.target.files[0];
-                     if(file) alert("촬영/선택 완료! (이곳에 앨범 저장 로직을 연결하세요)");
-                  }} className="hidden" />
-               </label>
-            )}
-            
-            {/* 탭 5: 제작 과정 */}
-            {tabIdx === 5 && <div className="p-4 text-xs">아이폰 보안 체계로 인해 웹에서는 기본 렌즈만 가동됩니다. 안드로이드에서는 서드파티 카메라 앱 선택이 가능합니다.</div>}
+             {tabIdx === 0 && <div className="p-4 font-bold">오늘 케어 화면입니다. 데이터 로직을 여기에 다시 넣으세요.</div>}
+             
+             {tabIdx === 3 && (
+               <div className="p-4">
+                 <label className="flex items-center gap-2 cursor-pointer p-4 bg-teal-500 text-white rounded-xl font-bold">
+                    <Icons.Camera /> 직접 촬영
+                    <input type="file" accept="image/*" onChange={(e) => alert("촬영/선택창이 뜹니다!")} className="hidden" />
+                 </label>
+               </div>
+             )}
           </div>
 
-          {/* 하단 탭 메뉴 */}
           <div className="h-16 flex justify-around border-t bg-white">
             {['케어', '달력', '지출', '앨범', '휴지통', '제작'].map((label, idx) => (
               <button key={idx} onClick={() => setTabIdx(idx)} className="text-xs font-bold p-2">{label}</button>
