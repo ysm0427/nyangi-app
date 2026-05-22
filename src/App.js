@@ -9,7 +9,7 @@ const Icons = {
   CheckSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>,
   Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
   PhotoLibrary: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
-  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
   Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
   Restore: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>,
   Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>,
@@ -112,7 +112,6 @@ export default function App() {
   const [albums, setAlbums] = useState(() => getLocalData('albums', {}));
   const [selectedMedia, setSelectedMedia] = useState(null);
 
-  // 🎨 각 폴더(탭) 및 기본 밑바탕 사진 배경 커스텀 메모리 금고 탑재
   const [bgImages, setBgImages] = useState(() => getLocalData('bgImages', {
     main: null, tab0: null, tab1: null, tab2: null, tab3: null, tab4: null, tab5: null
   }));
@@ -137,7 +136,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
   useEffect(() => { localStorage.setItem('bgImages', JSON.stringify(bgImages)); }, [bgImages]);
 
-  // 실시간 알람 동기화 워커
   useEffect(() => {
     const checkAlarmClock = setInterval(() => {
       const now = new Date();
@@ -247,7 +245,6 @@ export default function App() {
     }
   };
 
-  // 🎨 대용량 배경화면 사진 초압축 업로드 핸들러 공정 연동
   const handleBgImageUpload = (e, targetKey) => {
     const file = e.target.files[0];
     if (file) {
@@ -262,9 +259,7 @@ export default function App() {
 
   const handleBgLongPress = (targetKey) => {
     if (!bgImages[targetKey]) return;
-    if (window.confirm("이 화면에 지정된 테마 배경 사진을 지우고 기본 하얀 바탕으로 복원할까요?")) {
-      setBgImages({ ...bgImages, [targetKey]: null });
-    }
+    setBgImages({ ...bgImages, [targetKey]: null });
   };
 
   const handleCustomIconUpload = (e) => {
@@ -323,27 +318,27 @@ export default function App() {
     setTrackerInputAmount('');
   };
 
-  // 배경 입히는 마법의 CSS 주입기 공통 모듈
   const getBgStyle = (key) => {
-    return bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.75)' } : {};
+    return bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.72)' } : {};
   };
 
-  const renderBgEditButton = (key, label) => (
-    <div className="p-2 flex justify-center bg-white/60 backdrop-blur-xs shrink-0 border-t border-gray-100 gap-2">
-      <label className="text-[11px] font-black bg-slate-700 text-white px-3 py-1.5 rounded-lg shadow-xs cursor-pointer hover:bg-slate-800">
-        🖼️ {label} 배경 꾸미기
+  // ★ 아빠님 맞춤형 소형 플로팅 테마 꾸미기 아이콘 박스 공정 개조
+  const renderBgEditButton = (key) => (
+    <div className="absolute bottom-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-md border border-gray-100 transition-all active:scale-95">
+      <label className="text-[11px] font-black text-slate-700 flex items-center gap-1 cursor-pointer">
+        🎨 꾸미기
         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, key)} />
       </label>
       {bgImages[key] && (
-        <button onClick={() => handleBgLongPress(key)} className="text-[11px] font-bold bg-red-100 text-red-600 px-2 py-1.5 rounded-lg border border-red-200">
-          지우기
+        <button onClick={() => { if(window.confirm("이 화면의 배경 사진을 지우겠습니까?")) handleBgLongPress(key); }} className="text-red-500 font-bold ml-1.5 pl-1.5 border-l border-gray-300 text-[11px] flex items-center justify-center" title="배경 지우기">
+          <Icons.Trash />
         </button>
       )}
     </div>
   );
 
   const renderTab0 = () => (
-    <div className="flex flex-col h-full" style={getBgStyle('tab0')}>
+    <div className="flex flex-col h-full relative" style={getBgStyle('tab0')}>
       <div className="flex justify-between items-center p-3 bg-[#A3E4D7] bg-opacity-20 backdrop-blur-sm px-4">
         <div className="flex overflow-x-auto gap-2 scrollbar-hide flex-1">
           {cats.map((c) => (
@@ -379,7 +374,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pb-14 space-y-3">
         {(careItems[currentCat] || []).map((item, i) => {
           const todayRecords = careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || [];
           const total = todayRecords.reduce((sum, r) => sum + r.amount, 0);
@@ -402,10 +397,10 @@ export default function App() {
           );
         })}
       </div>
-      <div className="p-4 shrink-0 bg-white/40 flex flex-col gap-2">
+      <div className="p-4 shrink-0 bg-white/20 border-t border-transparent">
         <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '회', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]">+ 새로운 케어 항목 추가</button>
-        {renderBgEditButton('tab0', '오늘 케어')}
       </div>
+      {renderBgEditButton('tab0')}
     </div>
   );
 
@@ -421,7 +416,7 @@ export default function App() {
     const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
 
     return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto" style={getBgStyle('tab1')}>
+      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto relative pb-12" style={getBgStyle('tab1')}>
         <div className="bg-white/90 backdrop-blur-xs px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => handleMonthChange(-1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronLeft /></button>
@@ -459,7 +454,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex-1 p-4 space-y-3">
+        <div className="p-4 space-y-3">
           <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2 bg-white/60 p-1 rounded">
             <h3 className="font-extrabold text-gray-800 text-sm">{dashboardDate} 일정 현황</h3>
             <button onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }} className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm">+ 이 날짜에 일정 추가</button>
@@ -484,13 +479,13 @@ export default function App() {
             </div>
           )}
         </div>
-        {renderBgEditButton('tab1', '종합 달력')}
+        {renderBgEditButton('tab1')}
       </div>
     );
   };
 
   const renderTab2 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 overflow-y-auto" style={getBgStyle('tab2')}>
+    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 relative pb-12" style={getBgStyle('tab2')}>
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
         <span className="text-xs font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
         <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
@@ -505,8 +500,8 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 bg-white/90 backdrop-blur-xs rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between">
-        <div className="overflow-y-auto max-h-[400px] w-full space-y-2 mb-3">
+      <div className="flex-1 bg-white/90 backdrop-blur-xs rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between mb-2">
+        <div className="overflow-y-auto max-h-[360px] w-full space-y-2 mb-3">
           <div className="flex justify-between items-center mb-1"><h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3></div>
           {expenses.map((exp, i) => (
             <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50/80 rounded-lg border border-gray-100">
@@ -520,14 +515,14 @@ export default function App() {
         </div>
         <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm transition-colors">+ 새로운 지출 내역 추가</button>
       </div>
-      {renderBgEditButton('tab2', '지출 관리')}
+      {renderBgEditButton('tab2')}
     </div>
   );
 
   const renderTab3 = () => (
-    <div className="flex flex-col h-full bg-gray-50" style={getBgStyle('tab3')}>
+    <div className="flex flex-col h-full bg-gray-50 relative" style={getBgStyle('tab3')}>
       <div className="w-full p-3 bg-[#E8F8F5]/90 border-b border-teal-100 flex justify-between items-center px-4"><p className="font-bold text-teal-700">보관된 미디어: {(albums[currentCat] || []).length}개</p></div>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20">
         {(!albums[currentCat] || albums[currentCat].length === 0) ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60"><Icons.PhotoLibrary /><p className="text-sm font-bold">아직 추가된 사진/동영상이 없어요!</p></div>
         ) : (
@@ -545,19 +540,19 @@ export default function App() {
           </div>
         )}
       </div>
-      <div className="p-4 flex flex-col gap-2 bg-white/40">
+      <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
         <div className="flex gap-2">
-          <label className="flex-1 py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
-          <label className="flex-1 py-3 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 cursor-pointer text-sm"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs"><Icons.PhotoLibrary /> 앨범 선택<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs"><Icons.Camera /> 직접 촬영<input type="file" accept="image/*,video/*" onChange={(e) => setModalState({ isOpen: true, type: 'addMediaFile', fileEvent: e })} className="hidden" /></label>
+          <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
         </div>
-        <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`w-full py-2 font-bold rounded-xl text-xs ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '편집 완료' : '미디어 삭제/수정'}</button>
-        {renderBgEditButton('tab3', '냥이 앨범')}
       </div>
+      {renderBgEditButton('tab3')}
     </div>
   );
 
   const renderTab4 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto" style={getBgStyle('tab4')}>
+    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto relative pb-12" style={getBgStyle('tab4')}>
       <div className="flex justify-between items-center mb-4 bg-white/60 p-2 rounded-xl"><h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2><button onClick={() => { if(window.confirm("정말 휴지통을 영구적으로 완전히 비우시겠습니까?")) setTrashBin([]); }} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button></div>
       <div className="flex-1 space-y-3">
         {trashBin.length === 0 ? (
@@ -575,12 +570,12 @@ export default function App() {
           ))
         )}
       </div>
-      {renderBgEditButton('tab4', '휴지통')}
+      {renderBgEditButton('tab4')}
     </div>
   );
 
   const renderTab5 = () => (
-    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text" style={getBgStyle('tab5')}>
+    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16" style={getBgStyle('tab5')}>
       <div className="border-b border-slate-800 pb-4 mb-4">
         <span className="text-[10px] font-black bg-teal-500 text-teal-950 px-2 py-0.5 rounded">SYSTEM ARCHIVE MANUAL</span>
         <h2 className="text-xl font-black mt-1.5 text-white flex items-center gap-2"><Icons.Code /> 제작 과정</h2>
@@ -634,14 +629,14 @@ export default function App() {
               <p className="text-slate-400 text-[11px]">• 스마트폰 카메라 앱 기호 선택을 지원하기 위해 센서 필터를 전면 해제했습니다.</p>
             </div>
             <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 신기능] 배경 꾸미기 모듈</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 하단의 <span className="text-teal-300">배경 꾸미기</span> 버튼을 통해 전체 밑바탕 화면 및 각 탭 폴더마다 완전히 다른 사진이나 일러스트 그림을 독립적으로 커스텀 매핑할 수 있습니다.</p>
+              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 신기능] 미니멀 꾸미기 모듈</h4>
+              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 <span className="text-teal-300">🎨 꾸미기</span> 소형 단추로 화면을 깔끔하게 데코할 수 있으며, 지우고 싶을 땐 옆에 붙은 미니 휴지통 단추로 완전 삭제가 가능합니다.</p>
             </div>
           </div>
         </div>
         <p className="text-center text-[10px] text-slate-500 font-mono pt-2">© 2026 Bella & Roy Papa. All Rights Reserved.</p>
       </div>
-      {renderBgEditButton('tab5', '제작 과정')}
+      {renderBgEditButton('tab5')}
     </div>
   );
 
@@ -817,14 +812,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
-      {/* 🏡 메인 큰 밑바탕 배경 사진 커스텀 영역 */}
       <div 
         className="w-full max-w-md h-[100dvh] sm:h-[850px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
         style={getBgStyle('main')}
       >
         <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
         
-        {/* 하단 공통 메뉴 바 단추 정렬 */}
         <div className="flex flex-col bg-white/90 backdrop-blur-md border-t border-gray-200 pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0">
           <div className="flex justify-around items-center h-14 pt-2 px-1">
             {[
@@ -837,13 +830,12 @@ export default function App() {
               </button>
             ))}
           </div>
-          {/* 전체 큰 바탕화면 꾸미기용 히든 세팅 스위치 */}
           <div className="py-1 text-center bg-gray-50 border-t border-gray-100 flex justify-center items-center gap-2">
             <label className="text-[9px] text-gray-500 font-black cursor-pointer hover:underline">
               🏡 전체 바탕 테마 변경
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, 'main')} />
             </label>
-            {bgImages.main && <button onClick={() => handleBgLongPress('main')} className="text-[9px] text-red-500 font-bold hover:underline">[바탕 리셋]</button>}
+            {bgImages.main && <button onClick={() => { if(window.confirm("전체 바탕 테마 사진을 완전히 지우시겠습니까?")) handleBgLongPress('main'); }} className="text-[9px] text-red-500 font-bold hover:underline">[바탕 리셋]</button>}
           </div>
         </div>
         {renderModal()} {renderTrackerScreen()} {renderMediaDetailModal()}
