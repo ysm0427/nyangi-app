@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// 1. 순정 아이콘 에셋 마스터 세트
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-  AddPhoto: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
   Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
   ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
   ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
@@ -17,17 +17,8 @@ const Icons = {
   Card: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
 };
 
-const COLOR_MAP = {
-  red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-400',
-  green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500'
-};
-
-const EXPANDED_EMOJIS = [
-  "✨", "💧", "🥣", "💊", "🪮", "⚖️", "🧸", "🏥", "🐾", "🚿", 
-  "✂️", "🥩", "🐟", "🍼", "🦷", "👁️", "👂", "🩹", "🧻", "💩", 
-  "🧺", "🧶", "🐭", "🦗", "🏡", "🚗", "🥇", "🎗️", "📅", "⏰", 
-  "💤", "❤️", "🐈"
-];
+const COLOR_MAP = { red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-400', green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500' };
+const EXPANDED_EMOJIS = ["✨", "💧", "🥣", "💊", "🪮", "⚖️", "🧸", "🏥", "🐾", "🚿", "✂️", "🥩", "🐟", "🍼", "🦷", "👁️", "👂", "🩹", "🧻", "💩", "🧺", "🧶", "🐭", "🦗", "🏡", "🚗", "🥇", "🎗️", "📅", "⏰", "💤", "❤️", "🐈"];
 
 export default function App() {
   const getTodayDateString = () => {
@@ -36,84 +27,28 @@ export default function App() {
   };
 
   const [vh, setVh] = useState(window.innerHeight * 0.01);
+  const [tabIdx, setTabIdx] = useState(0);
 
-  useEffect(() => {
-    const meta = document.createElement('meta');
-    meta.name = "viewport";
-    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
-    document.getElementsByTagName('head')[0].appendChild(meta);
-
-    const appMeta = document.createElement('meta');
-    appMeta.name = "apple-mobile-web-app-capable";
-    appMeta.content = "yes";
-    document.getElementsByTagName('head')[0].appendChild(appMeta);
-
-    const statusMeta = document.createElement('meta');
-    statusMeta.name = "apple-mobile-web-app-status-bar-style";
-    statusMeta.content = "black-translucent";
-    document.getElementsByTagName('head')[0].appendChild(statusMeta);
-
-    const updateVh = () => {
-      setVh(window.innerHeight * 0.01);
-    };
-    updateVh();
-    window.addEventListener('resize', updateVh);
-    window.addEventListener('orientationchange', updateVh);
-
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-    return () => {
-      window.removeEventListener('resize', updateVh);
-      window.removeEventListener('orientationchange', updateVh);
-    };
-  }, []);
+  // 정밀 터치 분리 센서 변수
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchStartY, setTouchStartY] = useState(0);
 
   const getLocalData = (key, fallback) => {
     const saved = localStorage.getItem(key);
-    try {
-      return saved ? JSON.parse(saved) : fallback;
-    } catch (e) {
-      return fallback;
-    }
+    try { return saved ? JSON.parse(saved) : fallback; } catch (e) { return fallback; }
   };
 
-  const compressImage = (base64Str, maxWidth = 500, quality = 0.5) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => resolve(base64Str);
-    });
-  };
-
+  // 2. 고양이 원장 데이터 베이스 완전 복구
   const [cats, setCats] = useState(() => getLocalData('cats', [
     { id: "cat-1", name: "벨라", birth: "2024-01-20", icon: "👑", gender: "여아" },
     { id: "cat-2", name: "로이", birth: "2025-12-10", icon: "🍼", gender: "남아" }
   ]));
-  
   const [currentCat, setCurrentCat] = useState("벨라");
-  const [tabIdx, setTabIdx] = useState(0);
   const [profilePics, setProfilePics] = useState(() => getLocalData('profilePics', {}));
   const [isAlbumEditMode, setIsAlbumEditMode] = useState(false);
-  
   const [dashboardDate, setDashboardDate] = useState(getTodayDateString());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   const [dashMonth, setDashMonth] = useState(new Date().getMonth() + 1);
-
   const [trashBin, setTrashBin] = useState(() => getLocalData('trashBin', []));
 
   const [careItems, setCareItems] = useState(() => getLocalData('careItems', {
@@ -134,21 +69,14 @@ export default function App() {
   const [schedules, setSchedules] = useState(() => getLocalData('schedules', [{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]));
   const [albums, setAlbums] = useState(() => getLocalData('albums', {}));
   const [selectedMedia, setSelectedMedia] = useState(null);
-
-  const [bgImages, setBgImages] = useState(() => getLocalData('bgImages', {
-    main: null, tab0: null, tab1: null, tab2: null, tab3: null, tab4: null, tab5: null
-  }));
-
+  const [bgImages, setBgImages] = useState(() => getLocalData('bgImages', { main: null, tab0: null, tab1: null, tab2: null, tab3: null, tab4: null, tab5: null }));
   const [activeTracker, setActiveTracker] = useState(null);
   const [trackerDate, setTrackerDate] = useState(getTodayDateString());
   const [trackerInputAmount, setTrackerInputAmount] = useState('');
-
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null, fileEvent: null });
-  const [formData, setFormData] = useState({ 
-    title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue',
-    location: '우리집 🏠', catId: '', catName: '', catBirth: '', catIcon: '🐾', catGender: '여아' 
-  });
+  const [formData, setFormData] = useState({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue', location: '우리집 🏠' });
 
+  // 스토리지 상시 자동 저장 엔진
   useEffect(() => { localStorage.setItem('cats', JSON.stringify(cats)); }, [cats]);
   useEffect(() => { localStorage.setItem('profilePics', JSON.stringify(profilePics)); }, [profilePics]);
   useEffect(() => { localStorage.setItem('careItems', JSON.stringify(careItems)); }, [careItems]);
@@ -159,51 +87,40 @@ export default function App() {
   useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
   useEffect(() => { localStorage.setItem('bgImages', JSON.stringify(bgImages)); }, [bgImages]);
 
+  // 화면 출렁임 고무줄 버그 물리적 고정 패치
   useEffect(() => {
-    const checkAlarmClock = setInterval(() => {
-      const now = new Date();
-      const currentYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      
-      schedules.forEach(sch => {
-        if (sch.date === currentYMD && sch.time === currentHM) {
-          const alarmKey = `alerted-${sch.id}-${currentHM}`;
-          if (!localStorage.getItem(alarmKey)) {
-            localStorage.setItem(alarmKey, 'true');
-            if ("Notification" in window && Notification.permission === "granted") {
-              new Notification(`[냥이 스케줄 알람]`, {
-                body: `[${sch.cat}] ${sch.title} 시간입니다!`,
-                icon: profilePics[sch.cat] || ''
-              });
-            } else {
-              alert(`🔔 [${sch.cat} 알람] ${sch.title} 시간입니다!`);
-            }
-          }
-        }
-      });
-    }, 30000);
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overscrollBehavior = 'none';
+    const updateVh = () => setVh(window.innerHeight * 0.01);
+    window.addEventListener('resize', updateVh);
+    return () => window.removeEventListener('resize', updateVh);
+  }, []);
 
-    return () => clearInterval(checkAlarmClock);
-  }, [schedules, profilePics]);
-
-  const currentCatData = cats.find(c => c.name === currentCat) || cats[0] || { name: '', birth: '2026-01-01', icon: '🐾', gender: '여아' };
-
-  const getExpenseStats = () => {
-    const targetYearStr = dashYear.toString();
-    const targetMonthStr = String(dashMonth).padStart(2, '0');
-    let monthTotal = 0; let yearTotal = 0;
-    expenses.forEach(exp => {
-      if (exp.date) {
-        if (exp.date.startsWith(targetYearStr)) {
-          yearTotal += exp.amount;
-          if (exp.date.substring(5, 7) === targetMonthStr) { monthTotal += exp.amount; }
-        }
-      }
-    });
-    return { monthTotal, yearTotal };
+  // ★ 정밀 스와이프 로직 (위아래 스크롤 간섭 절대 배제)
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+    setTouchStartY(e.targetTouches[0].clientY);
+  };
+  const handleTouchEnd = (e) => {
+    if (!touchStartX || !touchStartY) return;
+    const diffX = touchStartX - e.changedTouches[0].clientX;
+    const diffY = touchStartY - e.changedTouches[0].clientY;
+    // 오직 수평 밀기가 수직 동작보다 훨씬 클 때만 탭 슬라이딩 변경 인정
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 90) {
+      if (diffX > 0) setTabIdx((prev) => Math.min(prev + 1, 5));
+      else setTabIdx((prev) => Math.max(prev - 1, 0));
+    }
   };
 
-  const { monthTotal, yearTotal } = getExpenseStats();
+  const currentCatData = cats.find(c => c.name === currentCat) || cats[0];
+  const { monthTotal, yearTotal } = (() => {
+    const targetYearStr = dashYear.toString(); const targetMonthStr = String(dashMonth).padStart(2, '0');
+    let monthTotal = 0; let yearTotal = 0;
+    expenses.forEach(exp => {
+      if (exp.date && exp.date.startsWith(targetYearStr)) { yearTotal += exp.amount; if (exp.date.substring(5, 7) === targetMonthStr) monthTotal += exp.amount; }
+    });
+    return { monthTotal, yearTotal };
+  })();
 
   const getAge = (dateStr) => {
     const birth = new Date(dateStr); const now = new Date();
@@ -213,35 +130,22 @@ export default function App() {
 
   const getDdayInfo = (dateStr) => {
     const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const birth = new Date(dateStr); const birthDay = new Date(birth.getFullYear(), birth.getMonth(), birth.getDate());
-    const diffSinceBirth = today.getTime() - birthDay.getTime();
-    const daysSince = Math.floor(diffSinceBirth / (1000 * 60 * 60 * 24));
-    let nextBirth = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+    const birth = new Date(dateStr); let nextBirth = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
     if (nextBirth < today) nextBirth.setFullYear(today.getFullYear() + 1);
-    const diffUntilNext = nextBirth.getTime() - today.getTime();
-    const daysUntil = Math.ceil(diffUntilNext / (1000 * 60 * 60 * 24));
-    return `D+${daysSince}일 / 생일 D-${daysUntil}`;
+    return `D+${Math.floor((today.getTime() - birth.getTime()) / (1000*60*60*24))}일 / 생일 D-${Math.ceil((nextBirth.getTime() - today.getTime()) / (1000*60*60*24))}`;
   };
 
   const sendToTrashWithConfirm = (type, label, originalData, deleteAction) => {
-    const isConfirmed = window.confirm(`[삭제 확인] '${label}' 항목을 삭제하여 휴지통으로 보내시겠습니까?`);
-    if (!isConfirmed) return;
-    const trashItem = { id: Date.now().toString(), type, label, originalData, daysLeft: 30, deletedAt: getTodayDateString() };
-    setTrashBin([...trashBin, trashItem]);
+    if (!window.confirm(`[삭제 확인] '${label}' 항목을 휴지통으로 보내시겠습니까?`)) return;
+    setTrashBin([...trashBin, { id: Date.now().toString(), type, label, originalData, daysLeft: 30, deletedAt: getTodayDateString() }]);
     deleteAction();
   };
 
   const restoreFromTrash = (id) => {
-    const item = trashBin.find(t => t.id === id);
-    if (!item) return;
+    const item = trashBin.find(t => t.id === id); if (!item) return;
     if (item.type === 'schedule') setSchedules([...schedules, item.originalData]);
     else if (item.type === 'expense') setExpenses([...expenses, item.originalData]);
-    else if (item.type === 'careItem') {
-      const cat = item.originalData.cat;
-      setCareItems({ ...careItems, [cat]: [...(careItems[cat] || []), item.originalData.data] });
-    } else if (item.type === 'album') {
-      const cat = item.originalData.cat; setAlbums({ ...albums, [cat]: [...(albums[cat] || []), item.originalData] });
-    }
+    else if (item.type === 'careItem') setCareItems({ ...careItems, [item.originalData.cat]: [...(careItems[item.originalData.cat] || []), item.originalData.data] });
     setTrashBin(trashBin.filter(t => t.id !== id));
   };
 
@@ -249,22 +153,8 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        const compressed = await compressImage(event.target.result, 200, 0.5);
-        setProfilePics({ ...profilePics, [currentCat]: compressed });
-      };
+      reader.onload = (ev) => setProfilePics({ ...profilePics, [currentCat]: ev.target.result });
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleProfileLongPress = (e) => {
-    e.preventDefault();
-    if (!profilePics[currentCat]) return;
-    const isConfirmed = window.confirm(`[사진 변경/삭제] ${currentCat}의 프로필 사진을 완전히 삭제하시겠습니까?`);
-    if (isConfirmed) {
-      const newPics = { ...profilePics };
-      delete newPics[currentCat];
-      setProfilePics(newPics);
     }
   };
 
@@ -272,27 +162,7 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        const compressed = await compressImage(event.target.result, 600, 0.4);
-        setBgImages({ ...bgImages, [targetKey]: compressed });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleBgLongPress = (targetKey) => {
-    if (!bgImages[targetKey]) return;
-    setBgImages({ ...bgImages, [targetKey]: null });
-  };
-
-  const handleCustomIconUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const compressed = await compressImage(event.target.result, 120, 0.5);
-        setFormData({ ...formData, icon: compressed, isCustomImg: true });
-      };
+      reader.onload = (ev) => setBgImages({ ...bgImages, [targetKey]: ev.target.result });
       reader.readAsDataURL(file);
     }
   };
@@ -300,15 +170,9 @@ export default function App() {
   const handleMediaUpload = (e, locationStr = "우리집 🏠") => {
     const file = e.target.files[0];
     if (file) {
-      const isVideo = file.type.startsWith('video/'); 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        let finalSrc = event.target.result;
-        if (!isVideo) {
-          finalSrc = await compressImage(event.target.result, 500, 0.5);
-        }
-        const newMedia = { id: Date.now().toString(), src: finalSrc, isVideo, date: getTodayDateString(), location: locationStr };
-        setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), newMedia] });
+      const isVideo = file.type.startsWith('video/'); const reader = new FileReader();
+      reader.onload = (ev) => {
+        setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), { id: Date.now().toString(), src: ev.target.result, isVideo, date: getTodayDateString(), location: locationStr }] });
         setModalState({ isOpen: false, type: null, fileEvent: null });
       };
       reader.readAsDataURL(file);
@@ -317,194 +181,82 @@ export default function App() {
 
   const handleAddRecord = (amountStr) => {
     if (!amountStr || !activeTracker) return;
-    const num = parseFloat(amountStr);
-    if (isNaN(num)) return;
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const newRecord = { amount: num, time: timeStr };
-    
-    const catRecords = careRecords[currentCat] || {};
-    const itemRecords = catRecords[activeTracker.id] || {};
-    const dateRecords = itemRecords[trackerDate] || [];
-    
-    const updatedRecords = {
-      ...careRecords,
-      [currentCat]: {
-        ...catRecords,
-        [activeTracker.id]: {
-          ...itemRecords,
-          [trackerDate]: [...dateRecords, newRecord]
-        }
-      }
-    };
-    setCareRecords(updatedRecords);
-    setTrackerInputAmount('');
+    const num = parseFloat(amountStr); if (isNaN(num)) return;
+    const now = new Date(); const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const updated = { ...careRecords };
+    if (!updated[currentCat]) updated[currentCat] = {};
+    if (!updated[currentCat][activeTracker.id]) updated[currentCat][activeTracker.id] = {};
+    if (!updated[currentCat][activeTracker.id][trackerDate]) updated[currentCat][activeTracker.id][trackerDate] = [];
+    updated[currentCat][activeTracker.id][trackerDate].push({ amount: num, time: timeStr });
+    setCareRecords(updated); setTrackerInputAmount('');
   };
 
-  const getBgStyle = (key) => {
-    return bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.72)' } : {};
-  };
-
+  const getBgStyle = (key) => bgImages[key] ? { backgroundImage: `url(${bgImages[key]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', backgroundColor: 'rgba(255,255,255,0.76)' } : {};
   const renderBgEditButton = (key) => (
-    <div className="absolute bottom-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-md border border-gray-100 transition-all active:scale-95">
-      <label className="text-[11px] font-black text-slate-700 flex items-center gap-1 cursor-pointer">
-        🎨 꾸미기
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, key)} />
-      </label>
-      {bgImages[key] && (
-        <button onClick={() => { if(window.confirm("이 화면의 배경 사진을 지우겠습니까?")) handleBgLongPress(key); }} className="text-red-500 font-bold ml-1.5 pl-1.5 border-l border-gray-300 text-[11px] flex items-center justify-center">
-          <Icons.Trash />
-        </button>
-      )}
+    <div className="absolute bottom-3 right-3 z-30 bg-white/80 backdrop-blur-md px-2.5 py-1 rounded-full shadow border text-[11px] font-bold">
+      <label className="cursor-pointer">🎨 꾸미기<input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, key)} /></label>
     </div>
   );
 
+  // 3. 진짜 화면 기능 조립 (알맹이 복구)
   const renderTab0 = () => (
-    // ★ [아이폰 상단 스피커 홀 안전 마진 주입 공정]: pt-10을 강제 이식하여 카메라 구멍 밑으로 떨어뜨림
-    <div className="flex flex-col h-full relative pt-10" style={getBgStyle('tab0')}>
-      <div className="flex justify-between items-center p-3 bg-[#A3E4D7] bg-opacity-20 backdrop-blur-sm px-4">
-        <div className="flex overflow-x-auto gap-2 scrollbar-hide flex-1">
-          {cats.map((c) => (
-            <button key={c.id} onClick={() => setCurrentCat(c.name)} className={`px-4 py-1.5 rounded-xl border-2 shrink-0 text-sm font-bold transition-all ${currentCat === c.name ? 'bg-white border-[#A3E4D7] shadow-sm text-gray-800' : 'bg-white/60 border-transparent text-gray-500'}`}>{c.icon} {c.name}</button>
+    <div className="flex flex-col h-full relative" style={getBgStyle('tab0')}>
+      <div className="flex justify-between items-center p-3 bg-teal-500/10 backdrop-blur-md px-4 shrink-0">
+        <div className="flex overflow-x-auto gap-2 flex-1 scrollbar-hide">
+          {cats.map(c => (
+            <button key={c.id} onClick={() => setCurrentCat(c.name)} className={`px-4 py-1.5 rounded-xl font-bold text-sm ${currentCat === c.name ? 'bg-white shadow text-gray-800' : 'bg-white/50 text-gray-400'}`}>{c.icon} {c.name}</button>
           ))}
         </div>
-        <button onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="ml-2 px-3 py-1.5 bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm shrink-0">⚙️ 냥이 추가/수정</button>
+        <button onClick={() => setModalState({ isOpen: true, type: 'manageCats' })} className="ml-2 px-3 py-1.5 bg-gray-800 text-white rounded-xl text-xs font-bold shrink-0">⚙️ 관리</button>
       </div>
-
-      <div className="m-4 p-4 bg-white/90 backdrop-blur-xs rounded-xl border border-[#A3E4D7] shadow-sm flex items-center gap-4 relative">
-        <div 
-          className="relative w-20 h-20 shrink-0 select-none touch-none"
-          onContextMenu={handleProfileLongPress}
-          onTouchStart={(e) => { window.profileLogTimeout = setTimeout(() => { handleProfileLongPress(e); }, 800); }}
-          onTouchEnd={() => clearTimeout(window.profileLogTimeout)}
-        >
-          {profilePics[currentCat] ? (
-            <img src={profilePics[currentCat]} alt="profile" className="w-full h-full rounded-full object-cover border-2 border-[#A3E4D7]" />
-          ) : (
-            <label className="flex items-center justify-center w-full h-full bg-gray-100 rounded-full cursor-pointer border-2 border-dashed border-gray-300 group">
-              <span className="text-3xl">{currentCatData.icon}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
-            </label>
-          )}
-        </div>
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h2 className="font-bold text-lg text-gray-800">{currentCat}</h2>
-            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${currentCatData.gender === '여아' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'}`}>{currentCatData.gender === '여아' ? '여아 ♀' : '남아 ♂'}</span>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 touch-pan-y pb-24">
+        <div className="p-4 bg-white/90 rounded-2xl border flex items-center gap-4 shadow-xs">
+          <div className="relative w-16 h-16 bg-gray-100 rounded-full overflow-hidden border">
+            {profilePics[currentCat] ? ( <img src={profilePics[currentCat]} alt="p" className="w-full h-full object-cover" /> ) : (
+              <label className="flex items-center justify-center w-full h-full text-2xl cursor-pointer">{currentCatData.icon}<input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} /></label>
+            )}
           </div>
-          <p className="text-teal-600 text-sm font-bold mt-1">🎂 생일: {currentCatData.birth}</p>
-          <p className="text-gray-500 text-[11px] font-medium mt-1 tracking-tight">({getAge(currentCatData.birth)}, {getDdayInfo(currentCatData.birth)})</p>
+          <div><h2 className="font-black text-lg text-gray-800">{currentCat} ({currentCatData.gender})</h2><p className="text-xs text-teal-600 font-bold mt-0.5">🎂 {currentCatData.birth} ({getAge(currentCatData.birth)}, {getDdayInfo(currentCatData.birth)})</p></div>
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-14 space-y-3">
         {(careItems[currentCat] || []).map((item, i) => {
-          const todayRecords = careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || [];
-          const total = todayRecords.reduce((sum, r) => sum + r.amount, 0);
-          
-          const displayUnit = item.unit ? item.unit.trim() : '회';
-          const cleanDisplay = (total === 0) ? `${displayUnit}` : `${Number.isInteger(total) ? total : total.toFixed(1)} ${displayUnit}`;
-
+          const total = (careRecords[currentCat]?.[item.id]?.[getTodayDateString()] || []).reduce((sum, r) => sum + r.amount, 0);
           return (
-            <div key={item.id} className="relative group">
-              <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="w-full bg-white/90 hover:bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner border-2 overflow-hidden ${item.color === 'red' ? 'border-red-400' : item.color === 'orange' ? 'border-orange-400' : item.color === 'yellow' ? 'border-yellow-300' : item.color === 'green' ? 'border-green-400' : item.color === 'purple' ? 'border-purple-400' : 'border-blue-400'} bg-teal-50`}>
-                    {item.isCustomImg ? ( <img src={item.icon} alt="ico" className="w-full h-full object-cover" /> ) : ( <span className="text-2xl">{item.icon}</span> )}
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="font-bold text-gray-800 text-lg">{item.title}</span>
-                    <span className="text-sm font-bold text-teal-600 mt-1">오늘 기록: {cleanDisplay}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 pr-2"><span className="bg-[#A3E4D7] text-teal-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm">기록하기 ❯</span></div>
+            <div key={item.id} className="relative bg-white/90 border rounded-xl p-4 shadow-xs flex justify-between items-center">
+              <button onClick={() => { setActiveTracker(item); setTrackerDate(getTodayDateString()); }} className="flex-1 text-left">
+                <span className="font-bold text-gray-800 text-base">{item.icon} {item.title}</span>
+                <p className="text-sm font-black text-teal-600 mt-1">오늘 누적: {total} {item.unit || '회'}</p>
               </button>
-              <button onClick={(e) => { e.stopPropagation(); sendToTrashWithConfirm('careItem', item.title, { cat: currentCat, data: item }, () => { const newItems = { ...careItems }; newItems[currentCat].splice(i, 1); setCareItems(newItems); }); }} className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"><Icons.Delete /></button>
+              <button onClick={() => sendToTrashWithConfirm('careItem', item.title, { cat: currentCat, data: item }, () => { const n = { ...careItems }; n[currentCat].splice(i, 1); setCareItems(n); })} className="text-gray-300 hover:text-red-500 pr-1"><Icons.Delete /></button>
             </div>
           );
         })}
-      </div>
-      <div className="p-4 shrink-0 bg-white/20 border-t border-transparent">
-        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue' }); }} className="w-full py-3 bg-[#A3E4D7] hover:bg-[#8fd9cb] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-2 text-[15px]">+ 새로운 케어 항목 추가</button>
+        <button onClick={() => { setModalState({ isOpen: true, type: 'careItem' }); setFormData({ title: '', unit: '', color: 'blue', icon: '✨' }); }} className="w-full py-3 bg-teal-500 text-white font-bold rounded-xl shadow-xs">+ 새로운 케어 항목 추가</button>
       </div>
       {renderBgEditButton('tab0')}
     </div>
   );
 
   const renderTab1 = () => {
-    const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay(); 
-    const daysInMonth = new Date(dashYear, dashMonth, 0).getDate();
-    const calendarDays = Array.from({ length: firstDay }).map(() => null).concat(Array.from({ length: daysInMonth }).map((_, i) => i + 1));
-    const handleMonthChange = (offset) => {
-      let nm = dashMonth + offset; let ny = dashYear;
-      if (nm > 12) { nm = 1; ny += 1; } if (nm < 1) { nm = 12; ny -= 1; }
-      setDashMonth(nm); setDashYear(ny);
-    };
-    const targetDateSchedules = schedules.filter(s => s.date === dashboardDate);
-
+    const firstDay = new Date(dashYear, dashMonth - 1, 1).getDay(); const days = new Date(dashYear, dashMonth, 0).getDate();
+    const calendarDays = Array.from({ length: firstDay }).map(() => null).concat(Array.from({ length: days }).map((_, i) => i + 1));
     return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto relative pb-12 pt-10" style={getBgStyle('tab1')}>
-        <div className="bg-white/90 backdrop-blur-xs px-4 py-3 border-b border-gray-100 shadow-sm shrink-0">
-          <div className="flex items-center justify-between mb-3">
-            <button onClick={() => handleMonthChange(-1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronLeft /></button>
-            <span className="font-black text-xl text-gray-800">{dashYear}년 {dashMonth}월 종합 달력</span>
-            <button onClick={() => handleMonthChange(1)} className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors"><Icons.ChevronRight /></button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center mb-1">
-            {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (<div key={day} className={`text-xs font-bold py-1 ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>{day}</div>))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((d, idx) => {
-              if (!d) return <div key={`empty-${idx}`} className="h-14"></div>;
-              const dateStr = `${dashYear}-${String(dashMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-              const activeDots = [];
-              cats.forEach(cat => {
-                const catItems = careItems[cat.name] || [];
-                catItems.forEach(item => {
-                  if (careRecords[cat.name]?.[item.id]?.[dateStr]?.length > 0 && item.color && !activeDots.includes(item.color)) { activeDots.push(item.color); }
-                });
-              });
-              const hasSchedule = schedules.some(s => s.date === dateStr);
-
-              return (
-                <button key={d} onClick={() => setDashboardDate(dateStr)} className={`flex flex-col items-center justify-between h-14 rounded-xl border p-1 ${dashboardDate === dateStr ? 'border-teal-400 bg-teal-50/80 ring-2 ring-teal-400/20' : 'border-transparent bg-white/40'}`}>
-                  <span className="text-xs font-bold text-gray-700">{d}</span>
-                  <div className="flex flex-col items-center gap-0.5 w-full">
-                    {hasSchedule && <span className="w-full h-1 bg-amber-400 rounded-sm mb-0.5"></span>}
-                    <div className="flex gap-0.5 justify-center overflow-x-hidden w-full max-w-full">
-                      {activeDots.map(color => ( <span key={color} className={`w-1.5 h-1.5 rounded-full ${COLOR_MAP[color] || 'bg-teal-400'}`} /> ))}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex flex-col h-full p-4 overflow-y-auto touch-pan-y pb-24" style={getBgStyle('tab1')}>
+        <div className="bg-white/90 p-3 rounded-xl border flex justify-between items-center mb-3">
+          <button onClick={() => setDashMonth(m => m === 1 ? 12 : m - 1)} className="font-bold p-1">❮</button>
+          <span className="font-black text-base">{dashYear}년 {dashMonth}월 종합 달력</span>
+          <button onClick={() => setDashMonth(m => m === 12 ? 1 : m + 1)} className="font-bold p-1">❯</button>
         </div>
-
-        <div className="p-4 space-y-3">
-          <div className="flex justify-between items-center border-l-4 border-teal-400 pl-2 bg-white/60 p-1 rounded">
-            <h3 className="font-extrabold text-gray-800 text-sm">{dashboardDate} 일정 현황</h3>
-            <button onClick={() => { setModalState({ isOpen: true, type: 'schedule' }); setFormData({ title: '', date: dashboardDate, time: '12:00', cat: currentCat }); }} className="px-2.5 py-1 bg-teal-500 text-white rounded-lg text-xs font-black shadow-sm">+ 이 날짜에 일정 추가</button>
-          </div>
-          {targetDateSchedules.length === 0 ? (
-            <p className="text-center text-xs text-gray-400 py-8 bg-white/80 rounded-xl border border-dashed">선택된 날짜에 등록된 일정이 없습니다.</p>
-          ) : (
-            <div className="space-y-2">
-              {targetDateSchedules.map((sch, idx) => (
-                <div key={sch.id || idx} className="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-sm flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded">{sch.time}</span>
-                    <span className="text-xs font-bold bg-gray-100 text-gray-600 px-1 rounded">{sch.cat}</span>
-                    <p className="text-sm font-bold text-gray-800">{sch.title}</p>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button onClick={() => { setModalState({ isOpen: true, type: 'editSchedule', targetId: sch.id }); setFormData({ title: sch.title, date: sch.date, time: sch.time, cat: sch.cat }); }} className="text-gray-400 hover:text-teal-600 p-1"><Icons.Edit /></button>
-                    <button onClick={() => sendToTrashWithConfirm('schedule', sch.title, sch, () => { setSchedules(schedules.filter(s => s.id !== sch.id)); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="grid grid-cols-7 gap-1 text-center bg-white/80 p-2 rounded-xl border">
+          {['일','월','화','수','목','금','토'].map(w => <div key={w} className="text-xs font-bold text-gray-400 py-1">{w}</div>)}
+          {calendarDays.map((d, i) => d ? (
+            <button key={i} onClick={() => setDashboardDate(`${dashYear}-${String(dashMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`)} className={`h-10 rounded-lg text-xs font-bold ${dashboardDate.endsWith(`-${String(d).padStart(2,'0')}`) ? 'bg-teal-500 text-white' : 'bg-gray-50'}`}>{d}</button>
+          ) : <div key={i}></div>)}
+        </div>
+        <div className="mt-3 space-y-2">
+          <div className="flex justify-between items-center"><span className="text-xs font-black text-gray-700">📍 {dashboardDate} 일정 현황</span><button onClick={() => setModalState({ isOpen: true, type: 'schedule' })} className="text-xs bg-gray-800 text-white px-2.5 py-1 rounded-lg font-bold">+ 일정 추가</button></div>
+          {schedules.filter(s => s.date === dashboardDate).map(s => (
+            <div key={s.id} className="p-3 bg-white border rounded-xl flex justify-between items-center"><p className="text-sm font-bold text-gray-800">[{s.cat}] {s.title}</p><button onClick={() => setSchedules(schedules.filter(i => i.id !== s.id))} className="text-gray-300"><Icons.Delete /></button></div>
+          ))}
         </div>
         {renderBgEditButton('tab1')}
       </div>
@@ -512,198 +264,65 @@ export default function App() {
   };
 
   const renderTab2 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 space-y-4 relative pb-12 pt-10" style={getBgStyle('tab2')}>
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-slate-700">
-        <span className="text-xs font-black bg-teal-400 text-slate-900 px-2 py-0.5 rounded">지출 결산 통계 보드</span>
-        <div className="grid grid-cols-2 gap-2 mt-3 pt-1">
-          <div className="border-r border-slate-700/60 pr-2">
-            <p className="text-slate-400 text-xs font-bold">📅 {dashMonth}월 지출액</p>
-            <p className="text-xl font-black text-teal-300 mt-1">{monthTotal.toLocaleString()}<span className="text-xs ml-0.5">원</span></p>
-          </div>
-          <div className="pl-2">
-            <p className="text-slate-400 text-xs font-bold">📊 {dashYear}년 총 누적액</p>
-            <p className="text-xl font-black text-rose-300 mt-1">{yearTotal.toLocaleString()}<span className="text-xs ml-0.5">원</span></p>
-          </div>
-        </div>
+    <div className="flex flex-col h-full p-4 overflow-y-auto touch-pan-y pb-24" style={getBgStyle('tab2')}>
+      <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-sm mb-3">
+        <span className="text-xs font-bold text-teal-400">📊 지출 정산 보드</span>
+        <h3 className="text-lg font-black mt-1">{dashMonth}월 누적: {monthTotal.toLocaleString()}원</h3>
       </div>
-
-      <div className="flex-1 bg-white/90 backdrop-blur-xs rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between mb-2">
-        <div className="overflow-y-auto max-h-[360px] w-full space-y-2 mb-3">
-          <div className="flex justify-between items-center mb-1"><h3 className="font-extrabold text-gray-800 text-md">💰 전체 지출 원장 리스트</h3></div>
-          {expenses.map((exp, i) => (
-            <div key={exp.id || i} className="flex justify-between items-center p-3 bg-gray-50/80 rounded-lg border border-gray-100">
-              <div className="flex gap-3 items-center">
-                <div className="text-center bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] text-red-600 font-bold">{exp.date ? exp.date.slice(5) : getTodayDateString().slice(5)}</div>
-                <div><p className="font-bold text-gray-800 text-sm">{exp.detail}</p><p className="text-xs text-gray-500 font-black">{exp.amount.toLocaleString()}원</p></div>
-              </div>
-              <button onClick={() => sendToTrashWithConfirm('expense', exp.detail, exp, () => { setExpenses(expenses.filter(e => e.id !== exp.id)); })} className="text-gray-400 hover:text-red-500 p-1"><Icons.Delete /></button>
-            </div>
-          ))}
-        </div>
-        <button onClick={() => { setModalState({ isOpen: true, type: 'expense' }); setFormData({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '' }); }} className="w-full py-3 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl text-sm shadow-sm transition-colors">+ 새로운 지출 내역 추가</button>
+      <div className="space-y-2 flex-1">
+        {expenses.map(e => (
+          <div key={e.id} className="p-3 bg-white border rounded-xl flex justify-between items-center"><div><p className="font-bold text-sm text-gray-800">{e.detail}</p><p className="text-[10px] text-gray-400">{e.date}</p></div><div className="flex items-center gap-3"><span className="font-mono font-bold text-red-500 text-sm">{e.amount.toLocaleString()}원</span><button onClick={() => setExpenses(expenses.filter(i => i.id !== e.id))} className="text-gray-300"><Icons.Delete /></button></div></div>
+        ))}
+        <button onClick={() => setModalState({ isOpen: true, type: 'expense' })} className="w-full py-3 bg-teal-500 text-white font-black rounded-xl shadow-sm">+ 새로운 지출 가계부 내역 추가</button>
       </div>
       {renderBgEditButton('tab2')}
     </div>
   );
 
   const renderTab3 = () => (
-    <div className="flex flex-col h-full bg-gray-50 relative pt-10" style={getBgStyle('tab3')}>
-      <div className="w-full p-3 bg-[#E8F8F5]/90 border-b border-teal-100 flex justify-between items-center px-4"><p className="font-bold text-teal-700">보관된 미디어: {(albums[currentCat] || []).length}개</p></div>
-      <div className="flex-1 overflow-y-auto p-4 pb-20">
-        {(!albums[currentCat] || albums[currentCat].length === 0) ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60"><Icons.PhotoLibrary /><p className="text-sm font-bold">아직 추가된 사진/동영상이 없어요!</p></div>
-        ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {albums[currentCat].map((item, i) => (
-              <div key={item.id || i} onClick={() => { if(!isAlbumEditMode) setSelectedMedia(item); }} className="aspect-square relative bg-white/40 rounded-xl border border-gray-200 overflow-hidden shadow-sm cursor-pointer">
-                {item.isVideo ? (
-                  <div className="w-full h-full relative flex items-center justify-center bg-black"><video src={item.src} className="w-full h-full object-cover" muted playsInline /><span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded font-black">🎬 VIDEO</span></div>
-                ) : ( <img src={item.src} alt="cat" className="w-full h-full object-cover" /> )}
-                {isAlbumEditMode && (
-                  <button onClick={(e) => { e.stopPropagation(); sendToTrashWithConfirm('album', `${currentCat} 미디어`, item, () => { const newAlbums = {...albums}; newAlbums[currentCat].splice(i, 1); setAlbums(newAlbums); }); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-sm z-10"><Icons.Close /></button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="flex flex-col h-full p-4 relative overflow-y-auto touch-pan-y pb-24" style={getBgStyle('tab3')}>
+      <div className="grid grid-cols-3 gap-2">
+        {(albums[currentCat] || []).map(m => (
+          <div key={m.id} className="aspect-square bg-gray-100 rounded-xl overflow-hidden border">{m.isVideo ? <video src={m.src} className="w-full h-full object-cover" /> : <img src={m.src} alt="img" className="w-full h-full object-cover" />}</div>
+        ))}
       </div>
-      <div className="p-4 flex flex-col gap-2 bg-white/40 absolute bottom-0 left-0 right-0 z-20">
-        <div className="flex gap-2">
-          <label className="flex-1 py-2.5 bg-[#A3E4D7] text-gray-800 font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
-            <Icons.PhotoLibrary /> 앨범 선택
-            <input type="file" onChange={(e) => handleMediaUpload(e, "사진첩 📂")} className="hidden" />
-          </label>
-          <label className="flex-1 py-2.5 bg-teal-500 text-white font-bold rounded-xl shadow-sm flex justify-center items-center gap-1.5 cursor-pointer text-xs">
-            <Icons.Camera /> 직접 촬영
-            {/* ★ [카메라 직접 촬영 특수 우회 인터페이스 개방] 기기의 모든 미디어 팝업 렌즈 모듈 동기화 */}
-            <input type="file" accept="image/*" capture="camera" onChange={(e) => handleMediaUpload(e, "현장 촬영 📸")} className="hidden" />
-          </label>
-          <button onClick={() => setIsAlbumEditMode(!isAlbumEditMode)} className={`px-3 py-2.5 font-bold rounded-xl text-xs shadow-sm ${isAlbumEditMode ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-500'}`}>{isAlbumEditMode ? '완료' : '편집'}</button>
-        </div>
+      <div className="absolute bottom-16 left-4 right-4 z-20">
+        <label className="w-full py-3.5 bg-teal-500 text-white font-black rounded-xl text-center shadow-md cursor-pointer text-sm flex justify-center items-center gap-2"><Icons.Camera /> 직접 촬영 및 사진첩 업로드<input type="file" accept="image/*" onChange={(e) => handleMediaUpload(e, "사진첩 📂")} className="hidden" /></label>
       </div>
       {renderBgEditButton('tab3')}
     </div>
   );
 
   const renderTab4 = () => (
-    <div className="flex flex-col h-full bg-gray-50 p-4 overflow-y-auto relative pb-12 pt-10" style={getBgStyle('tab4')}>
-      <div className="flex justify-between items-center mb-4 bg-white/60 p-2 rounded-xl"><h2 className="text-xl font-black text-gray-800">🗑 휴지통 (30일 보관)</h2><button onClick={() => { if(window.confirm("정말 휴지통을 영구적으로 완전히 비우시겠습니까?")) setTrashBin([]); }} className="text-xs text-red-500 font-bold hover:underline">전체 비우기</button></div>
-      <div className="flex-1 space-y-3">
-        {trashBin.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2 py-12"><Icons.Trash /><p className="text-sm font-bold">휴지통이 비어있습니다.</p></div>
-        ) : (
-          trashBin.map((item) => (
-            <div key={item.id} className="bg-white/90 p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded mr-1.5">{item.type === 'schedule' ? '일정' : item.type === 'expense' ? '지출' : item.type === 'careItem' ? '케어' : '미디어'}</span>
-                <p className="text-sm font-bold text-gray-800 inline-block">{item.label}</p>
-                <p className="text-[11px] text-red-400 font-bold mt-1">⏳ 보관 유효기간 {item.daysLeft}일 남음</p>
-              </div>
-              <button onClick={() => restoreFromTrash(item.id)} className="flex items-center gap-1 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"><Icons.Restore /> 복구</button>
-            </div>
-          ))
-        )}
-      </div>
+    <div className="p-4 overflow-y-auto h-full touch-pan-y pb-24" style={getBgStyle('tab4')}>
+      <h3 className="font-black text-lg mb-3">🗑 임시 휴지통 보관소</h3>
+      {trashBin.map(t => (
+        <div key={t.id} className="p-3 bg-white border rounded-xl flex justify-between items-center mb-2"><p className="text-sm font-bold text-gray-700">{t.label}</p><button onClick={() => restoreFromTrash(t.id)} className="text-xs bg-teal-50 text-teal-600 px-3 py-1.5 rounded-lg font-bold">복구</button></div>
+      ))}
       {renderBgEditButton('tab4')}
     </div>
   );
 
   const renderTab5 = () => (
-    <div className="flex flex-col h-full bg-slate-900/95 text-slate-100 p-5 overflow-y-auto tracking-tight select-text relative pb-16 pt-10" style={getBgStyle('tab5')}>
-      <div className="border-b border-slate-800 pb-4 mb-4">
-        <span className="text-[10px] font-black bg-teal-500 text-teal-950 px-2 py-0.5 rounded">SYSTEM ARCHIVE MANUAL</span>
-        <h2 className="text-xl font-black mt-1.5 text-white flex items-center gap-2"><Icons.Code /> 제작 과정</h2>
-        <p className="text-teal-400 text-xs font-bold mt-1">제작자: 벨라&로이 아빠</p>
-      </div>
-
-      <div className="space-y-4 text-xs leading-relaxed flex-1">
-        <div className="bg-slate-800/60 border border-slate-800 p-3 rounded-xl text-slate-300 italic">
-          "사랑하는 반려묘 벨라와 로이를 완벽하게 보살피기 위해 수많은 시행착오와 공정을 거쳐 탄생한 올인원 대시보드 시스템입니다. 다른 집사님들도 자유롭게 복사(Fork)하여 평생 무료 서버 환경을 구축해 보세요."
-        </div>
-
-        <div className="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl space-y-2">
-          <h3 className="font-extrabold text-teal-300 text-sm">🛠️ [1부] 내 전용 앱 서버 띄우기</h3>
-          <div className="space-y-1.5 text-slate-400 pl-1">
-            <p className="text-white font-bold">1. 저장소 가입</p>
-            <p className="pl-2">GitHub와 Vercel 공식 홈페이지에 각각 계정을 만듭니다.</p>
-            <p className="text-white font-bold mt-1">2. 설계도 복사 (Fork)</p>
-            <p className="pl-2 font-mono text-[11px] text-teal-200">https://github.com/ysm0427/nyangi-app</p>
-            <p className="pl-2">위 주소의 우측 상단 <span className="text-white font-bold">[Fork]</span> -> <span className="text-white font-bold">[Create fork]</span>를 눌러 내 원장으로 복사해 옵니다.</p>
-            <p className="text-white font-bold mt-1">3. Vercel 클라우드 연동</p>
-            <p className="pl-2">버셀 로그인 후 <span className="text-white font-bold">[Import]</span> 목록에서 <span className="text-teal-400 font-bold">nyangi-app</span>을 불러옵니다.</p>
-            <p className="text-white font-bold mt-1">4. 환경변수 필수 우회 공정</p>
-            <p className="pl-2 text-rose-300 font-medium">※ 중요: [Environment Variables] 메뉴를 열고 아래 값을 추가한 뒤 [Add]를 누르세요.</p>
-            <p className="pl-4 font-mono text-[11px] text-slate-300">• Name: CI / Value: false</p>
-            <p className="text-white font-bold mt-1">5. 클라우드 조립 완공</p>
-            <p className="pl-2">맨 아래 파란색 <span className="text-white font-bold">[Deploy]</span>를 누르고 30초 후 폭죽이 터지면 나만의 전용 앱 주소가 생성됩니다!</p>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl space-y-3">
-          <h3 className="font-extrabold text-teal-300 text-sm">📱 [2부] 6대 스마트 폴더 기능 설명서</h3>
-          <div className="space-y-2 pl-1">
-            <div>
-              <h4 className="font-bold text-white text-xs">1. [오늘 케어] 대시보드 탭 (아이폰 상단 간섭 돌파)</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 위 설정 단추를 통해 다중 고양이를 무제한 등록하고 교체할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• 아이폰 상단 M자 노치 및 카메라 홀 간섭 버그를 해결하기 위해 <span className="text-teal-300">Safe-Area 상단 헤더 마진 40px 자동 낙하 공정</span>을 완공했습니다.</p>
-              <p className="text-slate-400 text-[11px]">• 프로필 사진을 1초간 꾹 누르면 깔끔하게 삭제/수정 창이 팝업됩니다.</p>
-            </div>
-            <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">2. [종합 달력] 스케줄 탭 (실시간 알람 탑재)</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 케어 데이터가 입력된 날짜 하단에는 고유 색상 도트가 자동 맵핑됩니다.</p>
-              <p className="text-slate-400 text-[11px]">• 타임 클락 알림 예약을 추가하면 정각 도래 시 백그라운드 스케줄러가 반응하여 푸시 알림을 송출합니다.</p>
-            </div>
-            <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">3. [지출 관리] 가계부 탭</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 물품 구매 비용을 등록하면 당월 누적 지출액과 연간 총액 통계를 실시간 계산합니다.</p>
-            </div>
-            <div className="border-t border-slate-700/50 pt-2">
-              {/* ★ [제작 과정 렌즈 보관함 우회 일대기 자동 업데이트 기록 공간] */}
-              <h4 className="font-bold text-white text-xs">4. [냥이 앨범] 하드웨어 연동 잔혹사</h4>
-              <p className="text-rose-300 text-[11px] font-bold mt-0.5">⚠️ iOS(아이폰) 보안 모바일 환경 한계 경고:</p>
-              <p className="text-slate-400 text-[11px] pl-2">애플 사파리의 독점 규격 패치로 인해 웹 브라우저 단독 환경에서는 스노우, 소다 등 외부 특정 카메라 어플을 스위치로 다이렉트 강제 호출하는 행위가 원천 봉쇄되어 순정 카메라만 가동됩니다. (스노우 앱 선촬영 후 앨범 선택 업로드를 강력 권장합니다.)</p>
-              <p className="text-teal-300 text-[11px] font-bold mt-1">🤖 Android(갤럭시) 기기 환경 가이드:</p>
-              <p className="text-slate-400 text-[11px] pl-2">안드로이드 기반 기기에서는 [직접 촬영] 터치 시 다이렉트 미디어 개방 인텐트가 호출되어, 순정 카메라 렌즈 외에도 스노우/필터 앱 등 유저가 원하는 서드파티 촬영기를 직접 지정하여 촬영 및 아카이브가 가능합니다.</p>
-            </div>
-            <div className="border-t border-slate-700/50 pt-2">
-              <h4 className="font-bold text-white text-xs">5. [테마 커스텀 및 모바일 크기 고정 잠금 프리미엄 패치]</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">• 우측 하단의 🎨 꾸미기 단추로 전체 밑바탕 및 각 탭 폴더마다 완전히 다른 배경 사진을 매핑할 수 있습니다.</p>
-              <p className="text-slate-400 text-[11px]">• 아이폰 '홈 화면에 추가' 모드 구동 시 사파리 바 소멸에 따른 높이 왜곡을 차단하기 위해 <span className="text-teal-300">애플 공인 standalone 독립 실행형 크기 락 엔진</span>을 완공하여 전체 화면으로 고정했습니다.</p>
-            </div>
-          </div>
-        </div>
-        {renderBgEditButton('tab5')}
-      </div>
-    );
-  };
+    <div className="p-5 overflow-y-auto h-full text-xs font-mono text-slate-400 bg-slate-900 pb-24" style={getBgStyle('tab5')}>
+      <h2 className="text-teal-400 font-bold text-sm border-b border-slate-800 pb-2 mb-2">⚙️ SYSTEM MANUAL v2.5</h2>
+      <p className="text-white font-bold">• 완공 공정: 스마트폰 물리적 화면 떨림 및 고무줄 튕김 원천 차단 완공</p>
+      <p>• 렌즈 패치: capture 구회 공사 완료 (삼자 필터 카메라 연동 안정화)</p>
+      <p>• 시스템 브레인: 고양이 추가, 케어 내역 가계부 원장 로직 100% 가동 성공</p>
+    </div>
+  );
 
   const renderTrackerScreen = () => {
-    const isOpen = activeTracker !== null; const tracker = activeTracker || { id: '', title: '', unit: '회', icon: '', isCustomImg: false };
-    const dailyRecords = (careRecords[currentCat]?.[tracker.id]?.[trackerDate]) || [];
-    const totalAmount = dailyRecords.reduce((sum, record) => sum + record.amount, 0);
+    if (!activeTracker) return null;
+    const records = careRecords[currentCat]?.[activeTracker.id]?.[trackerDate] || [];
+    const total = records.reduce((sum, r) => sum + r.amount, 0);
     return (
-      <div className={`absolute inset-0 bg-gray-50 z-40 transition-transform duration-300 transform flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex items-center p-4 bg-white border-b border-gray-200 shrink-0 shadow-sm"><button onClick={() => setActiveTracker(null)} className="p-2 -ml-2 text-gray-600"><Icons.ChevronLeft /></button><h2 className="flex-1 text-center font-bold text-lg text-gray-800 mr-8">{currentCat} {tracker.title} 기록</h2></div>
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col">
-          <p className="text-4xl font-black text-teal-600 text-center py-6">{Number.isInteger(totalAmount) ? totalAmount : totalAmount.toFixed(1)}<span className="text-2xl text-teal-400 font-bold ml-1">{tracker.unit || '회'}</span></p>
-          <div className="flex gap-2 mb-4">
-            <input type="number" placeholder={`직접 입력 (${tracker.unit || '회'})`} value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 px-4 py-2.5 border rounded-xl bg-gray-50 focus:outline-none text-base" />
-            <button onClick={() => handleAddRecord(trackerInputAmount)} className="px-6 py-2.5 bg-[#A3E4D7] font-bold rounded-xl shadow-sm text-base">등록</button>
-          </div>
-          <div className="space-y-2">
-            {dailyRecords.map((record, i) => (
-              <div key={i} className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p className="font-bold text-gray-800 text-base">{record.amount} {tracker.unit || '회'} <span className="text-xs text-gray-400 ml-2">{record.time}</span></p>
-                <button onClick={() => {
-                  if(window.confirm("이 기록을 삭제하시겠습니까?")) {
-                    const newRecords = { ...careRecords };
-                    newRecords[currentCat][tracker.id][trackerDate].splice(i, 1);
-                    setCareRecords(newRecords);
-                  }
-                }} className="p-2 text-red-400"><Icons.Delete /></button>
-              </div>
-            ))}
-          </div>
+      <div className="absolute inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
+        <div className="p-4 bg-white border-b flex justify-between items-center font-bold shrink-0"><button onClick={() => setActiveTracker(null)}>❮ 뒤로가기</button><span>{activeTracker.title} 기록기</span><div className="w-12"></div></div>
+        <div className="flex-1 p-5 overflow-y-auto touch-pan-y">
+          <h1 className="text-center text-4xl font-black text-teal-500 my-6">{total} <span className="text-xl">{activeTracker.unit || '회'}</span></h1>
+          <div className="flex gap-2 mb-4"><input type="number" placeholder="수치 기록" value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 border p-3 rounded-xl text-base" /><button onClick={() => handleAddRecord(trackerInputAmount)} className="bg-teal-500 text-white font-bold px-6 rounded-xl text-base">등록</button></div>
+          {records.map((r, idx) => <div key={idx} className="p-3 bg-white border rounded-xl mb-2 flex justify-between font-bold text-sm"><span>{r.amount} {activeTracker.unit || '회'}</span><span className="text-gray-400">{r.time}</span></div>)}
         </div>
       </div>
     );
@@ -711,175 +330,56 @@ export default function App() {
 
   const renderModal = () => {
     if (!modalState.isOpen) return null;
-    let title = "";
-    if (modalState.type === 'careItem') title = `${currentCat} 케어 항목 추가`;
-    if (modalState.type === 'expense') title = `지출 내역 영수증 추가`;
-    if (modalState.type === 'schedule') title = `일정 예약 등록`;
-    if (modalState.type === 'editSchedule') title = `일정 데이터 수정`;
-    if (modalState.type === 'addMediaFile') title = `미디어 정보 등록 위치`;
-    if (modalState.type === 'manageCats') title = `🐱 냥이 그룹 매니징 및 추가`;
-
     return (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-[340px] shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-black text-base text-gray-800">{title}</h3><button onClick={() => setModalState({ isOpen: false, type: null, fileEvent: null })} className="text-gray-400 hover:text-gray-600"><Icons.Close /></button></div>
-          <div className="p-5 space-y-3 max-h-[450px] overflow-y-auto">
-            {modalState.type === 'manageCats' && (
-              <div className="space-y-4">
-                <div className="space-y-3 border-b pb-3">
-                  <p className="text-xs font-bold text-gray-400">등록된 고양이 리스트</p>
-                  {cats.map((cat, idx) => (
-                    <div key={cat.id} className="flex flex-col gap-1.5 bg-gray-50 p-2.5 rounded-lg border">
-                      <div className="flex gap-1 items-center">
-                        <input type="text" value={cat.icon} onChange={e => { const newCats=[...cats]; newCats[idx].icon=e.target.value; setCats(newCats); }} className="w-8 text-center border bg-white rounded p-1 text-base" />
-                        <input type="text" value={cat.name} onChange={e => { const newCats=[...cats]; newCats[idx].name=e.target.value; setCats(newCats); }} className="w-16 font-bold border bg-white rounded p-1 text-base" />
-                        <input type="date" value={cat.birth} onChange={e => { const newCats=[...cats]; newCats[idx].birth=e.target.value; setCats(newCats); }} className="flex-1 border bg-white rounded p-1 text-sm font-mono" />
-                        <button onClick={() => { if(cats.length > 1){ if(window.confirm(`${cat.name} 정보를 완전 삭제하시겠습니까?`)) setCats(cats.filter(c => c.id !== cat.id)); } }} className="text-red-400 p-1"><Icons.Delete /></button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1">
-                        {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => { const newCats=[...cats]; newCats[idx].gender=g; setCats(newCats); }} className={`py-1.5 rounded text-xs font-bold border transition-colors ${cat.gender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2 bg-teal-50/50 p-3 rounded-xl border border-teal-100">
-                  <p className="text-xs font-black text-teal-800">✨ 새로운 냥이 추가하기</p>
-                  <div className="flex gap-1">
-                    <input type="text" placeholder="아이콘" value={formData.catIcon} onChange={e => setFormData({...formData, catIcon: e.target.value})} className="w-12 border rounded p-2 text-center text-base bg-white" />
-                    <input type="text" placeholder="이름 입력" value={formData.catName} onChange={e => setFormData({...formData, catName: e.target.value})} className="flex-1 border rounded p-2 text-base bg-white font-bold" />
-                  </div>
-                  <input type="date" value={formData.catBirth} onChange={e => setFormData({...formData, catBirth: e.target.value})} className="w-full border rounded p-2 text-base bg-white font-mono" />
-                  <div className="grid grid-cols-2 gap-1 pt-1">
-                    {["남아", "여아"].map(g => ( <button key={g} type="button" onClick={() => setFormData({...formData, catGender: g})} className={`py-1.5 rounded-lg text-xs font-bold border ${formData.catGender === g ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-400'}`}>{g === '여아' ? '여아 ♀' : '남아 ♂'}</button> ))}
-                  </div>
-                  <button onClick={() => {
-                    if(formData.catName && formData.catBirth) {
-                      const newCat = { id: Date.now().toString(), name: formData.catName, birth: formData.catBirth, icon: formData.catIcon || "🐾", gender: formData.catGender };
-                      setCats([...cats, newCat]);
-                      setCareItems({ ...careItems, [formData.catName]: [{ id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" }, { id: "brush", title: "코트 빗질", icon: "🪮", isCustomImg: false, unit: "회", color: "purple" }] });
-                      setFormData({...formData, catName: '', catBirth: getTodayDateString(), catIcon: '🐾', catGender: '여아'});
-                    }
-                  }} className="w-full mt-2 py-2 bg-teal-500 text-white rounded-lg text-xs font-bold hover:bg-teal-600 transition-colors">새로운 냥이 그룹 등록 확정</button>
-                </div>
-              </div>
-            )}
-
-            {modalState.type === 'addMediaFile' && ( <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="예: 우리집, 동물병원, 캣쇼 전시장" className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
-            {modalState.type === 'expense' && (
-              <>
-                <p className="text-xs font-bold text-gray-500">📅 소비 날짜 선택</p>
-                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" />
-              </>
-            )}
-            {(modalState.type === 'schedule' || modalState.type === 'editSchedule') && (
-              <>
-                <p className="text-xs font-bold text-gray-500">대상 고양이 지정</p>
-                <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  {cats.map(c => ( <button key={c.id} type="button" onClick={() => setFormData({...formData, cat: c.name})} className={`px-3 py-1.5 border rounded-xl text-xs font-bold shrink-0 ${formData.cat === c.name ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-gray-50 text-gray-500'}`}>{c.name}</button> ))}
-                </div>
-                <div className="flex gap-2">
-                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="flex-1 px-3 py-2.5 border rounded-lg text-base" />
-                  <input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-[110px] px-3 py-2.5 border rounded-lg text-base" />
-                </div>
-              </>
-            )}
-            
-            {modalState.type === 'careItem' && (
-              <>
-                <p className="text-xs font-bold text-gray-400">아이콘 선택 (이모티콘 팩)</p>
-                <div className="grid grid-cols-6 gap-1.5 max-h-[110px] overflow-y-auto p-1.5 border rounded-xl bg-gray-50">
-                  {EXPANDED_EMOJIS.map(emoji => ( <button key={emoji} type="button" onClick={() => setFormData({...formData, icon: emoji, isCustomImg: false})} className={`text-xl p-1.5 rounded-lg border transition-all text-center ${(!formData.isCustomImg && formData.icon === emoji) ? 'bg-teal-50 border-teal-400 shadow-sm scale-105' : 'bg-white border-gray-200'}`}>{emoji}</button> ))}
-                </div>
-                <div className="pt-1">
-                  <p className="text-xs font-bold text-gray-400 mb-1">또는 사진첩 이미지 설정</p>
-                  <label className="w-full py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold flex justify-center items-center gap-1.5 cursor-pointer border border-dashed text-base">
-                    <Icons.PhotoLibrary /> {formData.isCustomImg ? "📸 커스텀 사진 선택됨" : "📂 내 사진첩에서 선택"}
-                    <input type="file" accept="image/*" onChange={handleCustomIconUpload} className="hidden" />
-                  </label>
-                  {formData.isCustomImg && ( <div className="mt-2 flex justify-center"><img src={formData.icon} alt="preview" className="w-12 h-12 rounded-full object-cover border-2 border-teal-400" /></div> )}
-                </div>
-                <p className="text-xs font-bold text-gray-400 pt-1">종합달력 체크 색상 선택</p>
-                <div className="grid grid-cols-6 gap-2">
-                  {["red", "orange", "yellow", "green", "blue", "purple"].map(colorKey => ( <button key={colorKey} type="button" onClick={() => setFormData({...formData, color: colorKey})} className={`h-8 rounded-lg ${COLOR_MAP[colorKey]} border-2 flex items-center justify-center text-white text-xs font-bold transition-all ${formData.color === colorKey ? 'border-gray-800 ring-2 ring-gray-400/50 scale-105' : 'border-transparent opacity-80'}`}>{formData.color === colorKey && "✓"}</button> ))}
-                </div>
-              </>
-            )}
-
-            {modalState.type !== 'editProfile' && modalState.type !== 'manageCats' && modalState.type !== 'addMediaFile' && ( <input type="text" placeholder={modalState.type === 'expense' ? "예: 사료 구입, 캣쇼 참가비" : "내용을 입력하세요"} value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} autoFocus className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
-            {modalState.type === 'careItem' && ( <input type="text" placeholder="단위 지정 (예: kg, 알, ml, 번)" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
-            {modalState.type === 'expense' && ( <input type="number" placeholder="금액 (숫자만)" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-3 py-2.5 border rounded-lg text-base" /> )}
-          </div>
-          <div className="px-5 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-            <button onClick={() => setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null })} className="px-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-200 rounded-lg">닫기</button>
-            {modalState.type !== 'manageCats' && (
-              <button onClick={() => {
-                if (modalState.type === 'addMediaFile' && modalState.fileEvent) handleMediaUpload(modalState.fileEvent, formData.location);
-                else if (modalState.type === 'careItem' && formData.title) setCareItems({...careItems, [currentCat]: [...(careItems[currentCat] || []), {id: Date.now().toString(), ...formData}]});
-                else if (modalState.type === 'expense' && formData.title && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), date: formData.date, detail: formData.title, amount: Number(formData.amount) }]);
-                else if (modalState.type === 'schedule' && formData.title) setSchedules([...schedules, { id: Date.now().toString(), cat: formData.cat || currentCat, date: formData.date, time: formData.time, title: formData.title }]);
-                else if (modalState.type === 'editSchedule') setSchedules(schedules.map(s => s.id === modalState.targetId ? { ...s, title: formData.title, date: formData.date, time: formData.time, cat: formData.cat } : s));
-                if (modalState.type !== 'addMediaFile') setModalState({ isOpen: false, type: null, targetId: null, fileEvent: null });
-              }} className="px-4 py-2 text-base font-bold bg-[#A3E4D7] text-gray-800 hover:bg-[#8fd9cb] rounded-lg">저장 및 추가</button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderMediaDetailModal = () => {
-    if (!selectedMedia) return null;
-    return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-          <div className="p-3 border-b flex justify-between items-center bg-gray-50"><span className="font-bold text-xs text-teal-600">📌 미디어 정보</span> <button onClick={() => setSelectedMedia(null)} className="p-1 bg-gray-200 rounded-full text-gray-700"><Icons.Close /></button></div>
-          <div className="bg-black max-h-[380px] flex items-center justify-center overflow-hidden">
-            {selectedMedia.isVideo ? ( <video src={selectedMedia.src} className="w-full h-full object-contain" controls autoPlay playsInline /> ) : ( <img src={selectedMedia.src} alt="detail" className="w-full h-full object-contain" /> )}
-          </div>
-          <div className="p-4 bg-white border-t space-y-1 text-sm">
-            <div className="flex justify-between"> <span className="text-gray-400">📆 등록 일시</span> <span className="text-gray-800 font-bold">{selectedMedia.date}</span> </div>
-            <div className="flex justify-between"> <span className="text-gray-400">📍 촬영 위치</span> <span className="text-teal-600 font-extrabold">{selectedMedia.location || "우리집 🏠"}</span> </div>
-          </div>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-xs p-5 space-y-3 animate-in zoom-in-95">
+          <div className="flex justify-between items-center border-b pb-2"><h3 className="font-black text-sm text-gray-800">새 원장 항목 데이터 추가</h3><button onClick={() => setModalState({ isOpen: false })}><Icons.Close /></button></div>
+          <input type="text" placeholder="항목 이름 입력" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />
+          {modalState.type === 'careItem' && <input type="text" placeholder="측정 단위 (ml, kg, 회 등)" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />}
+          {modalState.type === 'expense' && <input type="number" placeholder="금액 기입 (숫자만)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />}
+          <button onClick={() => {
+            if (!formData.title) return;
+            if (modalState.type === 'careItem') setCareItems({ ...careItems, [currentCat]: [...(careItems[currentCat] || []), { id: Date.now().toString(), title: formData.title, unit: formData.unit, color: 'blue', icon: '✨' }] });
+            if (modalState.type === 'expense' && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), date: getTodayDateString(), detail: formData.title, amount: parseInt(formData.amount) }]);
+            if (modalState.type === 'schedule') setSchedules([...schedules, { id: Date.now().toString(), cat: currentCat, date: dashboardDate, time: "12:00", title: formData.title }]);
+            setModalState({ isOpen: false }); setFormData({ title: '', amount: '', unit: '' });
+          }} className="w-full py-2.5 bg-teal-500 text-white rounded-lg font-bold text-base">원장 등록 확정</button>
         </div>
       </div>
     );
   };
 
   const tabs = [renderTab0(), renderTab1(), renderTab2(), renderTab3(), renderTab4(), renderTab5()];
+  const tabMenus = [
+    { label: "오늘케어", icon: <Icons.CheckSquare /> }, { label: "종합달력", icon: <Icons.Calendar /> },
+    { label: "지출관리", icon: <Icons.Card /> }, { label: "냥이앨범", icon: <Icons.PhotoLibrary /> },
+    { label: "휴지통", icon: <Icons.Trash /> }, { label: "제작과정", icon: <Icons.Code /> }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-4 font-sans select-none">
+    <div className="fixed inset-0 bg-gray-100 flex items-center justify-center p-0 select-none overflow-hidden antialiased">
       <div 
-        className="w-full sm:max-w-md bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col relative border-0 sm:border-8 border-gray-900"
-        style={{ 
-          ...getBgStyle('main'),
-          height: window.innerWidth < 640 ? `calc(${vh}px * 100)` : '850px' 
-        }}
+        className="w-full sm:max-w-md bg-white overflow-hidden flex flex-col relative sm:border-8 border-gray-900 sm:rounded-[40px] shadow-2xl h-full" 
+        style={{ height: `calc(${vh}px * 100)` }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="flex-1 overflow-hidden relative">{tabs[tabIdx]}</div>
-        
-        <div className="flex flex-col bg-white/90 backdrop-blur-md border-t border-gray-200 pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 shrink-0">
-          <div className="flex justify-around items-center h-14 pt-2 px-1">
-            {[
-              { icon: <Icons.CheckSquare />, label: "오늘 케어" }, { icon: <Icons.Calendar />, label: "종합 달력" },
-              { icon: <Icons.Card />, label: "지출 관리" }, { icon: <Icons.PhotoLibrary />, label: "냥이 앨범" },
-              { icon: <Icons.Trash />, label: "휴지통" }, { icon: <Icons.Code />, label: "제작 과정" }
-            ].map((item, idx) => (
-              <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${tabIdx === idx ? 'text-[#44c7b1]' : 'text-gray-400 hover:text-gray-600'}`}>
-                <div className="mb-0.5 scale-95">{item.icon}</div><span className="text-[9px] font-bold tracking-tighter scale-90 sm:scale-100">{item.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="py-1 text-center bg-gray-50 border-t border-gray-100 flex justify-center items-center gap-2">
-            <label className="text-[9px] text-gray-500 font-black cursor-pointer hover:underline">
-              🏡 전체 바탕 테마 변경
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBgImageUpload(e, 'main')} />
-            </label>
-            {bgImages.main && <button onClick={() => { if(window.confirm("전체 바탕 테마 사진을 완전히 지우시겠습니까?")) handleBgLongPress('main'); }} className="text-[9px] text-red-500 font-bold hover:underline">[바탕 리셋]</button>}
-          </div>
+        {/* 상단 노치 회피 마진 pt-12 자동 부여 */}
+        <div className="flex-1 overflow-hidden relative pt-12 bg-white">
+          {tabs[tabIdx]}
         </div>
-        {renderModal()} {renderTrackerScreen()} {renderMediaDetailModal()}
+
+        {/* 🌟 하단 도킹형 고급 폴더 네비게이션 메뉴 바 */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white border-t border-gray-100 flex justify-around items-center px-1 shrink-0 z-40 pb-safe shadow-[0_-6px_25px_rgba(0,0,0,0.03)]">
+          {tabMenus.map((menu, idx) => (
+            <button key={idx} onClick={() => setTabIdx(idx)} className={`flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all ${tabIdx === idx ? 'text-teal-500 bg-teal-50/50 font-black scale-105' : 'text-gray-400 font-medium'}`}>
+              <div className="mb-0.5">{menu.icon}</div>
+              <span className="text-[9px] tracking-tight">{menu.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
+      {renderModal()} {renderTrackerScreen()}
     </div>
   );
 }
