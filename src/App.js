@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// 1. 순정 아이콘 에셋 마스터 세트
+// 1. 순정 마스터 아이콘 에셋
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
@@ -20,32 +20,40 @@ const Icons = {
 const COLOR_MAP = { red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-400', green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500' };
 const EXPANDED_EMOJIS = ["✨", "💧", "🥣", "💊", "🪮", "⚖️", "🧸", "🏥", "🐾", "🚿", "✂️", "🥩", "🐟", "🍼", "🦷", "👁️", "👂", "🩹", "🧻", "💩", "🧺", "🧶", "🐭", "🦗", "🏡", "🚗", "🥇", "🎗️", "📅", "⏰", "💤", "❤️", "🐈"];
 
+// ★ 모바일 먹통(White Screen) 방지용 초강력 방탄 데이터 로더
+const getLocalData = (key, fallback) => {
+  try {
+    const saved = window.localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
+
+const setLocalData = (key, data) => {
+  try { window.localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+};
+
 export default function App() {
   const getTodayDateString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
-  const [vh, setVh] = useState(window.innerHeight * 0.01);
+  const [vh, setVh] = useState(typeof window !== 'undefined' ? window.innerHeight * 0.01 : 8);
   const [tabIdx, setTabIdx] = useState(0);
 
-  // 정밀 터치 슬라이딩 변수
+  // 정밀 터치 슬라이딩 센서
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
 
-  const getLocalData = (key, fallback) => {
-    const saved = localStorage.getItem(key);
-    try { return saved ? JSON.parse(saved) : fallback; } catch (e) { return fallback; }
-  };
-
-  // 고양이 그룹 데이터 원장 로드
+  // 데이터 로드
   const [cats, setCats] = useState(() => getLocalData('cats', [
     { id: "cat-1", name: "벨라", birth: "2024-01-20", icon: "👑", gender: "여아" },
     { id: "cat-2", name: "로이", birth: "2025-12-10", icon: "🍼", gender: "남아" }
   ]));
   const [currentCat, setCurrentCat] = useState("벨라");
   const [profilePics, setProfilePics] = useState(() => getLocalData('profilePics', {}));
-  const [isAlbumEditMode, setIsAlbumEditMode] = useState(false);
   const [dashboardDate, setDashboardDate] = useState(getTodayDateString());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   const [dashMonth, setDashMonth] = useState(new Date().getMonth() + 1);
@@ -53,13 +61,13 @@ export default function App() {
 
   const [careItems, setCareItems] = useState(() => getLocalData('careItems', {
     "벨라": [
-      { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
-      { id: "brush", title: "렉돌 코트 빗질", icon: "🪮", isCustomImg: false, unit: "회", color: "purple" },
-      { id: "pill", title: "영양제 챙기기", icon: "💊", isCustomImg: false, unit: "알", color: "red" }
+      { id: "water", title: "음수량 측정", icon: "💧", unit: "ml", color: "blue" },
+      { id: "brush", title: "렉돌 코트 빗질", icon: "🪮", unit: "회", color: "purple" },
+      { id: "pill", title: "영양제 챙기기", icon: "💊", unit: "알", color: "red" }
     ],
     "로이": [
-      { id: "water", title: "음수량 측정", icon: "💧", isCustomImg: false, unit: "ml", color: "blue" },
-      { id: "walk", title: "캣쇼 워킹 연습", icon: "🧸", isCustomImg: false, unit: "분", color: "orange" },
+      { id: "water", title: "음수량 측정", icon: "💧", unit: "ml", color: "blue" },
+      { id: "walk", title: "캣쇼 워킹 연습", icon: "🧸", unit: "분", color: "orange" },
       { id: "weight", title: "몸무게 체크", icon: "⚖️", unit: "kg", color: "green" }
     ]
   }));
@@ -68,40 +76,43 @@ export default function App() {
   const [expenses, setExpenses] = useState(() => getLocalData('expenses', [{ id: "exp-1", date: getTodayDateString(), detail: "벨라 간식 사료 구입", amount: 14500 }]));
   const [schedules, setSchedules] = useState(() => getLocalData('schedules', [{ id: "sch-1", cat: "벨라", date: getTodayDateString(), time: "14:00", title: "동물병원 검진 🏥" }]));
   const [albums, setAlbums] = useState(() => getLocalData('albums', {}));
-  const [selectedMedia, setSelectedMedia] = useState(null);
   const [bgImages, setBgImages] = useState(() => getLocalData('bgImages', { main: null, tab0: null, tab1: null, tab2: null, tab3: null, tab4: null, tab5: null }));
   const [activeTracker, setActiveTracker] = useState(null);
   const [trackerDate, setTrackerDate] = useState(getTodayDateString());
   const [trackerInputAmount, setTrackerInputAmount] = useState('');
-  const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null, fileEvent: null });
-  const [formData, setFormData] = useState({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', isCustomImg: false, color: 'blue', location: '우리집 🏠', catIcon: '🐾', catName: '', catBirth: '', catGender: '여아' });
+  const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null });
+  const [formData, setFormData] = useState({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', color: 'blue', location: '우리집 🏠', catIcon: '🐾', catName: '', catBirth: '', catGender: '여아' });
 
-  useEffect(() => { localStorage.setItem('cats', JSON.stringify(cats)); }, [cats]);
-  useEffect(() => { localStorage.setItem('profilePics', JSON.stringify(profilePics)); }, [profilePics]);
-  useEffect(() => { localStorage.setItem('careItems', JSON.stringify(careItems)); }, [careItems]);
-  useEffect(() => { localStorage.setItem('careRecords', JSON.stringify(careRecords)); }, [careRecords]);
-  useEffect(() => { localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses]);
-  useEffect(() => { localStorage.setItem('schedules', JSON.stringify(schedules)); }, [schedules]);
-  useEffect(() => { localStorage.setItem('albums', JSON.stringify(albums)); }, [albums]);
-  useEffect(() => { localStorage.setItem('trashBin', JSON.stringify(trashBin)); }, [trashBin]);
-  useEffect(() => { localStorage.setItem('bgImages', JSON.stringify(bgImages)); }, [bgImages]);
+  // 데이터 안전 자동 저장
+  useEffect(() => { setLocalData('cats', cats); }, [cats]);
+  useEffect(() => { setLocalData('profilePics', profilePics); }, [profilePics]);
+  useEffect(() => { setLocalData('careItems', careItems); }, [careItems]);
+  useEffect(() => { setLocalData('careRecords', careRecords); }, [careRecords]);
+  useEffect(() => { setLocalData('expenses', expenses); }, [expenses]);
+  useEffect(() => { setLocalData('schedules', schedules); }, [schedules]);
+  useEffect(() => { setLocalData('albums', albums); }, [albums]);
+  useEffect(() => { setLocalData('trashBin', trashBin); }, [trashBin]);
+  useEffect(() => { setLocalData('bgImages', bgImages); }, [bgImages]);
 
-  // 모바일 출렁임 방지락 장치
+  // 모바일 화면 떨림 방지 및 높이 계산
   useEffect(() => {
-    document.body.style.overscrollBehavior = 'none';
-    document.documentElement.style.overscrollBehavior = 'none';
-    const updateVh = () => setVh(window.innerHeight * 0.01);
+    try {
+      document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overscrollBehavior = 'none';
+    } catch(e) {}
+    const updateVh = () => { if(typeof window !== 'undefined') setVh(window.innerHeight * 0.01); };
     window.addEventListener('resize', updateVh);
     return () => window.removeEventListener('resize', updateVh);
   }, []);
 
-  // 정밀 스와이프 슬라이더 무빙 인식
+  // 안전한 스와이프 로직
   const handleTouchStart = (e) => {
+    if(!e.targetTouches || !e.targetTouches[0]) return;
     setTouchStartX(e.targetTouches[0].clientX);
     setTouchStartY(e.targetTouches[0].clientY);
   };
   const handleTouchEnd = (e) => {
-    if (!touchStartX || !touchStartY) return;
+    if (!touchStartX || !touchStartY || !e.changedTouches || !e.changedTouches[0]) return;
     const diffX = touchStartX - e.changedTouches[0].clientX;
     const diffY = touchStartY - e.changedTouches[0].clientY;
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 75) {
@@ -133,6 +144,21 @@ export default function App() {
     return `D+${Math.floor((today.getTime() - birth.getTime()) / (1000*60*60*24))}일 / 생일 D-${Math.ceil((nextBirth.getTime() - today.getTime()) / (1000*60*60*24))}`;
   };
 
+  const compressImage = (base64Str, maxWidth = 500, quality = 0.5) => {
+    return new Promise((resolve) => {
+      const img = new Image(); img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width; let h = img.height;
+        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(base64Str);
+    });
+  };
+
   const sendToTrashWithConfirm = (type, label, originalData, deleteAction) => {
     if (!window.confirm(`[삭제 확인] '${label}' 항목을 휴지통으로 보내시겠습니까?`)) return;
     setTrashBin([...trashBin, { id: Date.now().toString(), type, label, originalData, daysLeft: 30, deletedAt: getTodayDateString() }]);
@@ -151,7 +177,7 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => setProfilePics({ ...profilePics, [currentCat]: ev.target.result });
+      reader.onload = async (ev) => { const c = await compressImage(ev.target.result, 200, 0.5); setProfilePics({ ...profilePics, [currentCat]: c }); };
       reader.readAsDataURL(file);
     }
   };
@@ -160,22 +186,19 @@ export default function App() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => setBgImages({ ...bgImages, [targetKey]: ev.target.result });
+      reader.onload = async (ev) => { const c = await compressImage(ev.target.result, 600, 0.4); setBgImages({ ...bgImages, [targetKey]: c }); };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleBgLongPress = (targetKey) => {
-    setBgImages({ ...bgImages, [targetKey]: null });
   };
 
   const handleMediaUpload = (e, locationStr = "우리집 🏠") => {
     const file = e.target.files[0];
     if (file) {
       const isVideo = file.type.startsWith('video/'); const reader = new FileReader();
-      reader.onload = (ev) => {
-        setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), { id: Date.now().toString(), src: ev.target.result, isVideo, date: getTodayDateString(), location: locationStr }] });
-        setModalState({ isOpen: false, type: null, fileEvent: null });
+      reader.onload = async (ev) => {
+        let src = ev.target.result; if (!isVideo) src = await compressImage(src, 500, 0.5);
+        setAlbums({ ...albums, [currentCat]: [...(albums[currentCat] || []), { id: Date.now().toString(), src, isVideo, date: getTodayDateString(), location: locationStr }] });
+        setModalState({ isOpen: false, type: null });
       };
       reader.readAsDataURL(file);
     }
@@ -201,7 +224,6 @@ export default function App() {
     </div>
   );
 
-  // 6대 폴더 내용 구성
   const tab0_view = (
     <div className="flex flex-col h-full relative" style={getBgStyle('tab0')}>
       <div className="flex justify-between items-center p-3 bg-teal-500/10 backdrop-blur-md px-4 shrink-0">
@@ -248,14 +270,16 @@ export default function App() {
       </div>
       <div className="grid grid-cols-7 gap-1 text-center bg-white/90 p-2 rounded-xl border shadow-xs">
         {['일','월','화','수','목','금','토'].map((w,i) => <div key={w} className={`text-xs font-bold py-1 ${i===0?'text-red-500':'text-gray-400'}`}>{w}</div>)}
-        {calendarDays.map((d, i) => d ? (
-          <button key={i} onClick={() => setDashboardDate(`${dashYear}-${String(dashMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`)} className={`h-10 rounded-lg text-xs font-black transition-colors ${dashboardDate.endsWith(`-${String(d).padStart(2,'0')}`) ? 'bg-teal-500 text-white shadow-sm' : 'bg-gray-50 text-gray-700'}`}>{d}</button>
-        ) : <div key={i}></div>)}
+        {Array.from({ length: new Date(dashYear, dashMonth - 1, 1).getDay() }).map((_, i) => <div key={`e-${i}`}></div>)}
+        {Array.from({ length: new Date(dashYear, dashMonth, 0).getDate() }).map((_, i) => {
+          const d = i + 1; const dateStr = `${dashYear}-${String(dashMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          return <button key={d} onClick={() => setDashboardDate(dateStr)} className={`h-10 rounded-lg text-xs font-black transition-colors ${dashboardDate === dateStr ? 'bg-teal-500 text-white shadow-sm' : 'bg-gray-50 text-gray-700'}`}>{d}</button>
+        })}
       </div>
       <div className="mt-4 space-y-2">
         <div className="flex justify-between items-center border-l-4 border-l-amber-400 pl-2 bg-white/40 py-1 rounded"><span className="text-xs font-black text-gray-700">📍 {dashboardDate} 스케줄</span><button onClick={() => setModalState({ isOpen: true, type: 'schedule' })} className="text-xs bg-gray-800 text-white px-3 py-1 rounded-lg font-bold">+ 등록</button></div>
         {schedules.filter(s => s.date === dashboardDate).map(s => (
-          <div key={s.id} className="p-3 bg-white border rounded-xl flex justify-between items-center shadow-xs"><p className="text-sm font-bold text-gray-800">[{s.cat}] {s.title}</p><button onClick={() => setSchedules(schedules.filter(i => i.id !== s.id))} className="text-gray-300"><Icons.Delete /></button></div>
+          <div key={s.id} className="p-3 bg-white border rounded-xl flex justify-between items-center shadow-xs"><p className="text-sm font-bold text-gray-800">[{s.cat}] {s.title}</p><button onClick={() => sendToTrashWithConfirm('schedule', s.title, s, () => setSchedules(schedules.filter(i => i.id !== s.id)))} className="text-gray-300"><Icons.Delete /></button></div>
         ))}
       </div>
       {renderBgEditButton('tab1')}
@@ -270,7 +294,7 @@ export default function App() {
       </div>
       <div className="space-y-2 flex-1">
         {expenses.map(e => (
-          <div key={e.id} className="p-3 bg-white border rounded-xl flex justify-between items-center shadow-xs"><div><p className="font-bold text-sm text-gray-800">{e.detail}</p><p className="text-[10px] text-gray-400 font-mono">{e.date}</p></div><div className="flex items-center gap-3"><span className="font-mono font-bold text-rose-500 text-sm">{e.amount.toLocaleString()}원</span><button onClick={() => setExpenses(expenses.filter(i => i.id !== e.id))} className="text-gray-300"><Icons.Delete /></button></div></div>
+          <div key={e.id} className="p-3 bg-white border rounded-xl flex justify-between items-center shadow-xs"><div><p className="font-bold text-sm text-gray-800">{e.detail}</p><p className="text-[10px] text-gray-400 font-mono">{e.date}</p></div><div className="flex items-center gap-3"><span className="font-mono font-bold text-rose-500 text-sm">{e.amount.toLocaleString()}원</span><button onClick={() => sendToTrashWithConfirm('expense', e.detail, e, () => setExpenses(expenses.filter(i => i.id !== e.id)))} className="text-gray-300"><Icons.Delete /></button></div></div>
         ))}
         <button onClick={() => setModalState({ isOpen: true, type: 'expense' })} className="w-full py-3 bg-teal-500 text-white font-black rounded-xl shadow-sm text-sm">+ 새로운 지출 내역 가계부 추가</button>
       </div>
@@ -288,7 +312,6 @@ export default function App() {
           ))}
         </div>
       </div>
-      {/* 🌟 앨범 추가 안전 도킹 구역 설정 */}
       <div className="absolute bottom-24 left-4 right-4 z-20 shrink-0">
         <label className="w-full py-3.5 bg-teal-500 text-white font-black rounded-xl text-center shadow-md cursor-pointer text-sm flex justify-center items-center gap-2 transition-all active:scale-95"><Icons.Camera /> 직접 촬영 및 앨범 업로드<input type="file" accept="image/*" onChange={(e) => handleMediaUpload(e, "사진첩 📂")} className="hidden" /></label>
       </div>
@@ -349,6 +372,67 @@ export default function App() {
     </div>
   );
 
+  const renderTrackerScreen = () => {
+    if (!activeTracker) return null;
+    const records = careRecords[currentCat]?.[activeTracker.id]?.[trackerDate] || [];
+    const total = records.reduce((sum, r) => sum + r.amount, 0);
+    return (
+      <div className="absolute inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
+        <div className="p-4 bg-white border-b flex justify-between items-center font-bold shrink-0"><button onClick={() => setActiveTracker(null)}>❮ 뒤로가기</button><span>{activeTracker.title} 기록기</span><div className="w-12"></div></div>
+        <div className="flex-1 p-5 overflow-y-auto touch-pan-y">
+          <h1 className="text-center text-4xl font-black text-teal-500 my-6">{total} <span className="text-xl">{activeTracker.unit || '회'}</span></h1>
+          <div className="flex gap-2 mb-4"><input type="number" placeholder="수치 기록" value={trackerInputAmount} onChange={e => setTrackerInputAmount(e.target.value)} className="flex-1 border p-3 rounded-xl text-base" /><button onClick={() => handleAddRecord(trackerInputAmount)} className="bg-teal-500 text-white font-bold px-6 rounded-xl text-base">등록</button></div>
+          {records.map((r, idx) => <div key={idx} className="p-3 bg-white border rounded-xl mb-2 flex justify-between font-bold text-sm"><span>{r.amount} {activeTracker.unit || '회'}</span><span className="text-gray-400">{r.time}</span></div>)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderModal = () => {
+    if (!modalState.isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-xs p-5 space-y-3 animate-in zoom-in-95">
+          <div className="flex justify-between items-center border-b pb-2"><h3 className="font-black text-sm text-gray-800">새 항목 추가 / 관리</h3><button onClick={() => setModalState({ isOpen: false })}><Icons.Close /></button></div>
+          
+          {modalState.type === 'manageCats' ? (
+            <div className="space-y-4 max-h-[300px] overflow-y-auto">
+              {cats.map((cat, idx) => (
+                <div key={cat.id} className="flex flex-col gap-1.5 bg-gray-50 p-2.5 rounded-lg border">
+                  <div className="flex gap-1 items-center">
+                    <input type="text" value={cat.icon} onChange={e => { const n=[...cats]; n[idx].icon=e.target.value; setCats(n); }} className="w-8 text-center border rounded p-1" />
+                    <input type="text" value={cat.name} onChange={e => { const n=[...cats]; n[idx].name=e.target.value; setCats(n); }} className="w-16 font-bold border rounded p-1" />
+                    <input type="date" value={cat.birth} onChange={e => { const n=[...cats]; n[idx].birth=e.target.value; setCats(n); }} className="flex-1 border rounded p-1 text-xs" />
+                    <button onClick={() => { if(cats.length>1) setCats(cats.filter(c => c.id !== cat.id)); }} className="text-red-400"><Icons.Delete /></button>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-2 mt-2">
+                <p className="text-xs font-bold mb-1 text-teal-600">새 그룹원 추가</p>
+                <div className="flex gap-1 mb-1"><input type="text" placeholder="이모티콘" value={formData.catIcon} onChange={e => setFormData({...formData, catIcon: e.target.value})} className="w-12 border rounded p-1 text-center" /><input type="text" placeholder="이름" value={formData.catName} onChange={e => setFormData({...formData, catName: e.target.value})} className="flex-1 border rounded p-1" /></div>
+                <input type="date" value={formData.catBirth} onChange={e => setFormData({...formData, catBirth: e.target.value})} className="w-full border rounded p-1 text-sm mb-1" />
+                <button onClick={() => { if(formData.catName) { setCats([...cats, { id: Date.now().toString(), name: formData.catName, birth: formData.catBirth, icon: formData.catIcon || "🐾", gender: '여아' }]); setFormData({...formData, catName: ''}); } }} className="w-full bg-teal-500 text-white py-2 rounded-lg text-xs font-bold">추가 완료</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <input type="text" placeholder="항목 이름 입력" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />
+              {modalState.type === 'careItem' && <input type="text" placeholder="측정 단위 (ml, kg, 알 등)" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />}
+              {modalState.type === 'expense' && <input type="number" placeholder="금액 기입 (숫자만)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full border p-2.5 rounded-lg text-base" />}
+              <button onClick={() => {
+                if (!formData.title) return;
+                if (modalState.type === 'careItem') setCareItems({ ...careItems, [currentCat]: [...(careItems[currentCat] || []), { id: Date.now().toString(), title: formData.title, unit: formData.unit, color: 'blue', icon: '✨' }] });
+                if (modalState.type === 'expense' && formData.amount) setExpenses([...expenses, { id: Date.now().toString(), date: getTodayDateString(), detail: formData.title, amount: parseInt(formData.amount) }]);
+                if (modalState.type === 'schedule') setSchedules([...schedules, { id: Date.now().toString(), cat: currentCat, date: dashboardDate, time: "12:00", title: formData.title }]);
+                setModalState({ isOpen: false }); setFormData({ title: '', amount: '', unit: '' });
+              }} className="w-full py-2.5 bg-teal-500 text-white rounded-lg font-bold text-base">원장 등록 확정</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const tabViews = [tab0_view, tab1_view, tab2_view, tab3_view, tab4_view, tab5_view];
   const tabMenus = [
     { label: "오늘케어", icon: <Icons.CheckSquare /> }, { label: "종합달력", icon: <Icons.Calendar /> },
@@ -365,6 +449,9 @@ export default function App() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* 상단 노치 회피용 안전 마진 뷰포트 */}
+        <div className="w-full pt-12 shrink-0"></div>
+
         {/* 🌟 하드웨어 가속 방식의 매끄러운 6대 폴더 가로 슬라이딩 무빙 뷰 포트 */}
         <div className="flex-1 overflow-hidden relative">
           <div 
