@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// 1. 순정 마스터 아이콘 에셋
+// 1. 순정 마스터 아이콘 에셋 세트
 const Icons = {
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
@@ -20,7 +20,6 @@ const Icons = {
 const COLOR_MAP = { red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-400', green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500' };
 const EXPANDED_EMOJIS = ["✨", "💧", "🥣", "💊", "🪮", "⚖️", "🧸", "🏥", "🐾", "🚿", "✂️", "🥩", "🐟", "🍼", "🦷", "👁️", "👂", "🩹", "🧻", "💩", "🧺", "🧶", "🐭", "🦗", "🏡", "🚗", "🥇", "🎗️", "📅", "⏰", "💤", "❤️", "🐈"];
 
-// ★ 모바일 먹통(White Screen) 방지용 초강력 방탄 데이터 로더
 const getLocalData = (key, fallback) => {
   try {
     const saved = window.localStorage.getItem(key);
@@ -43,7 +42,7 @@ export default function App() {
   const [vh, setVh] = useState(typeof window !== 'undefined' ? window.innerHeight * 0.01 : 8);
   const [tabIdx, setTabIdx] = useState(0);
 
-  // 정밀 터치 슬라이딩 센서
+  // 정밀 슬라이딩 터치 센서
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
 
@@ -83,7 +82,7 @@ export default function App() {
   const [modalState, setModalState] = useState({ isOpen: false, type: null, targetId: null });
   const [formData, setFormData] = useState({ title: '', amount: '', date: getTodayDateString(), time: '12:00', unit: '', icon: '✨', color: 'blue', location: '우리집 🏠', catIcon: '🐾', catName: '', catBirth: '', catGender: '여아' });
 
-  // 데이터 안전 자동 저장
+  // 데이터 안전 저장
   useEffect(() => { setLocalData('cats', cats); }, [cats]);
   useEffect(() => { setLocalData('profilePics', profilePics); }, [profilePics]);
   useEffect(() => { setLocalData('careItems', careItems); }, [careItems]);
@@ -94,7 +93,7 @@ export default function App() {
   useEffect(() => { setLocalData('trashBin', trashBin); }, [trashBin]);
   useEffect(() => { setLocalData('bgImages', bgImages); }, [bgImages]);
 
-  // 모바일 화면 떨림 방지 및 높이 계산
+  // 모바일 화면 떨림 방지
   useEffect(() => {
     try {
       document.body.style.overscrollBehavior = 'none';
@@ -191,6 +190,8 @@ export default function App() {
     }
   };
 
+  const handleBgLongPress = (targetKey) => setBgImages({ ...bgImages, [targetKey]: null });
+
   const handleMediaUpload = (e, locationStr = "우리집 🏠") => {
     const file = e.target.files[0];
     if (file) {
@@ -224,6 +225,7 @@ export default function App() {
     </div>
   );
 
+  // 6대 폴더 내용 구성
   const tab0_view = (
     <div className="flex flex-col h-full relative" style={getBgStyle('tab0')}>
       <div className="flex justify-between items-center p-3 bg-teal-500/10 backdrop-blur-md px-4 shrink-0">
@@ -449,17 +451,20 @@ export default function App() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* 상단 노치 회피용 안전 마진 뷰포트 */}
+        {/* 상단 노치 회피용 안전 마진 뷰포트 (상단 여백 고정) */}
         <div className="w-full pt-12 shrink-0"></div>
 
         {/* 🌟 하드웨어 가속 방식의 매끄러운 6대 폴더 가로 슬라이딩 무빙 뷰 포트 */}
         <div className="flex-1 overflow-hidden relative">
           <div 
             className="flex h-full transition-transform duration-300 ease-out" 
-            style={{ transform: `translateX(-${tabIdx * 100}%)`, width: '600%' }}
+            style={{ 
+              transform: `translateX(-${tabIdx * (100 / 6)}%)`, 
+              width: '600%' 
+            }}
           >
             {tabViews.map((view, idx) => (
-              <div key={idx} className="w-1/6 h-full shrink-0 overflow-hidden relative">
+              <div key={idx} style={{ width: `${100 / 6}%` }} className="h-full shrink-0 overflow-hidden relative">
                 {view}
               </div>
             ))}
