@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('care');
-  const [activePet, setActivePet] = useState('vella'); // 벨라, 로이 탭 상태
+  const [activePet, setActivePet] = useState('vella'); 
 
-  // 지출 관리 상태 (이전 기능 유지)
   const [expenses, setExpenses] = useState([
     { id: 1, name: '고양이 모래 3세트', date: '2026. 05. 28', price: '45,000', img: null }
   ]);
@@ -12,7 +11,6 @@ export default function App() {
   const [expPrice, setExpPrice] = useState('');
   const [expImg, setExpImg] = useState(null);
 
-  // 지출 관리 로직
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -31,22 +29,30 @@ export default function App() {
     setExpName(''); setExpPrice(''); setExpImg(null);
   };
 
-  // 1번 이미지 스타일 완벽 구현 CSS
+  // 🌟 아이폰 최적화(Safe Area) 및 레이아웃 수정 완료
   const styles = `
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { background-color: #e8eaed; color: #333; display: flex; justify-content: center; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
     
-    /* 앱 전체 컨테이너 (스마트폰 비율) */
+    body { 
+      background-color: #e8eaed; color: #333; 
+      display: flex; justify-content: center; align-items: center; 
+      /* 아이폰 사파리 상하단 바를 고려한 동적 높이 */
+      height: 100vh; height: 100dvh; overflow: hidden; 
+    }
+    
     #app-container { 
-      width: 100%; max-width: 480px; margin: 0 auto; background-color: #f7f9fa; 
-      min-height: 100vh; position: relative; display: flex; flex-direction: column; 
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+      width: 100%; max-width: 480px; background-color: #f7f9fa; 
+      height: 100%; height: 100dvh; display: flex; flex-direction: column; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; overflow: hidden;
     }
 
-    /* 상단 펫 선택 탭 (민트 배경) */
+    /* 상단 영역 (다이내믹 아일랜드 및 시계 가림 방지) */
     .top-pet-nav {
       display: flex; justify-content: space-between; align-items: center; 
-      padding: 15px 20px; background-color: #eaf8f5; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+      padding: 15px 20px; 
+      padding-top: max(15px, env(safe-area-inset-top)); /* 🍎 아이폰 상단 안전영역 확보 */
+      background-color: #eaf8f5; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+      flex-shrink: 0; z-index: 10;
     }
     .pet-tabs { display: flex; gap: 10px; }
     .pet-tab { 
@@ -55,79 +61,57 @@ export default function App() {
       cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s;
     }
     .pet-tab.active { color: #333; border-color: #a7ecd9; box-shadow: 0 2px 5px rgba(167, 236, 217, 0.3); }
-    .pet-edit-btn {
-      background: #344054; color: #fff; border: none; padding: 8px 14px; 
-      border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
-    }
+    .pet-edit-btn { background: #344054; color: #fff; border: none; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-    /* 메인 컨텐츠 영역 */
-    main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
+    /* 중간 스크롤 영역 */
+    main { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
 
-    /* 프로필 카드 (벨라) */
-    .profile-card {
-      background: #fff; border: 1px solid #a7ecd9; border-radius: 16px; 
-      padding: 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
-    }
-    .profile-avatar {
-      width: 70px; height: 70px; border-radius: 50%; border: 2px dashed #d1d5db; 
-      display: flex; justify-content: center; align-items: center; font-size: 30px; background: #f9fafb;
-    }
+    /* 프로필 및 카드 UI */
+    .profile-card { background: #fff; border: 1px solid #a7ecd9; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .profile-avatar { width: 70px; height: 70px; border-radius: 50%; border: 2px dashed #d1d5db; display: flex; justify-content: center; align-items: center; font-size: 30px; background: #f9fafb; }
     .profile-info h2 { font-size: 18px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
     .gender-badge { background: #ffe4e6; color: #e11d48; font-size: 11px; padding: 2px 6px; border-radius: 10px; font-weight: bold; }
     .birth-info { font-size: 13px; color: #059669; font-weight: 600; margin-bottom: 4px; }
     .d-day-info { font-size: 11px; color: #888; }
 
-    /* 케어 항목 리스트 */
-    .care-item {
-      background: #fff; border: 1px solid #f0f0f0; border-radius: 16px; 
-      padding: 15px; display: flex; align-items: center; justify-content: space-between; 
-      margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-    }
+    .care-item { background: #fff; border: 1px solid #f0f0f0; border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .care-left { display: flex; align-items: center; gap: 15px; }
-    .care-icon {
-      width: 50px; height: 50px; border-radius: 50%; border: 2px solid; 
-      display: flex; justify-content: center; align-items: center; font-size: 24px;
-    }
+    .care-icon { width: 50px; height: 50px; border-radius: 50%; border: 2px solid; display: flex; justify-content: center; align-items: center; font-size: 24px; }
     .care-text h3 { font-size: 16px; color: #111; margin-bottom: 4px; }
     .care-text p { font-size: 13px; color: #0d9488; font-weight: 600; }
     .care-actions { display: flex; align-items: center; gap: 10px; }
-    .record-btn {
-      background: #a7ecd9; color: #065f46; border: none; padding: 8px 12px; 
-      border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer;
-    }
+    .record-btn { background: #a7ecd9; color: #065f46; border: none; padding: 8px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
     .delete-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; }
 
-    /* 하단 버튼들 */
-    .add-care-btn {
-      width: 100%; background: #a7ecd9; color: #065f46; border: none; 
-      padding: 16px; border-radius: 12px; font-size: 15px; font-weight: bold; 
-      margin-top: 10px; cursor: pointer;
-    }
-    .deco-btn {
-      position: absolute; right: 20px; bottom: 90px; background: #fff; 
-      border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-      padding: 10px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; z-index: 10;
-    }
+    .add-care-btn { width: 100%; background: #a7ecd9; color: #065f46; border: none; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: bold; margin-top: 10px; cursor: pointer; margin-bottom: 40px; }
+    
+    .deco-btn { position: absolute; right: 20px; bottom: 20px; background: #fff; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 10px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; z-index: 10; }
 
-    /* 하단 네비게이션바 (아이콘 및 색상 매칭) */
+    /* 하단 네비게이션바 (아이폰 홈 바 가림 방지) */
     nav {
-      position: absolute; bottom: 0; width: 100%; background: #fff; 
-      border-top: 1px solid #eee; border-top-left-radius: 20px; border-top-right-radius: 20px;
-      display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 100;
+      background: #fff; border-top: 1px solid #eee; 
+      border-top-left-radius: 20px; border-top-right-radius: 20px;
+      display: flex; justify-content: space-around; 
+      padding: 12px 0;
+      padding-bottom: max(25px, env(safe-area-inset-bottom)); /* 🍎 아이폰 하단 홈 바 안전영역 확보 */
+      flex-shrink: 0; z-index: 100; position: relative;
     }
-    .nav-btn {
-      background: none; border: none; display: flex; flex-direction: column; 
-      align-items: center; gap: 6px; color: #b0b8c1; cursor: pointer; font-size: 10px; font-weight: 600;
-    }
+    .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #b0b8c1; cursor: pointer; font-size: 10px; font-weight: 600; padding: 5px 0; width: 100%; }
     .nav-btn svg { width: 22px; height: 22px; fill: currentColor; }
     .nav-btn.active { color: #10b981; }
 
-    /* 지출관리 화면용 기존 폼 스타일 */
+    /* 터치 방해 금지 코드 적용 (터치 먹통 원인 해결) */
+    .bottom-theme-text {
+      position: absolute; bottom: max(6px, calc(env(safe-area-inset-bottom) - 15px)); 
+      width: 100%; text-align: center; font-size: 9px; color: #999; 
+      pointer-events: none; /* 🍎 클릭 방해 요소를 투명하게 통과시킴 */
+    }
+
+    /* 지출 관리 폼 */
     .card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #eaeaea; }
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
     .form-group input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; }
-    .form-group input:focus { border-color: #a7ecd9; }
     .upload-box { border: 2px dashed #dcdde1; border-radius: 10px; padding: 20px; text-align: center; background: #fafafa; position: relative; }
     .upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
     .submit-btn { width: 100%; background: #344054; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
@@ -139,7 +123,7 @@ export default function App() {
     <div id="app-container">
       <style>{styles}</style>
       
-      {/* 1번 이미지 상단: 펫 선택 및 수정 헤더 */}
+      {/* 1. 상단 탭 */}
       <div className="top-pet-nav">
         <div className="pet-tabs">
           <button className={`pet-tab ${activePet === 'vella' ? 'active' : ''}`} onClick={() => setActivePet('vella')}>👑 벨라</button>
@@ -148,11 +132,10 @@ export default function App() {
         <button className="pet-edit-btn">⚙️ 냥이 추가/수정</button>
       </div>
 
+      {/* 2. 메인 스크롤 영역 */}
       <main>
-        {/* === 1. 케어 탭 (1번 이미지 완벽 구현) === */}
         {activeTab === 'care' && (
           <div>
-            {/* 프로필 카드 */}
             <div className="profile-card">
               <div className="profile-avatar">👑</div>
               <div className="profile-info">
@@ -162,49 +145,28 @@ export default function App() {
               </div>
             </div>
 
-            {/* 케어 리스트 1: 음수량 */}
             <div className="care-item">
               <div className="care-left">
                 <div className="care-icon" style={{ borderColor: '#bfdbfe', color: '#3b82f6', background: '#eff6ff' }}>💧</div>
-                <div className="care-text">
-                  <h3>음수량 측정</h3>
-                  <p>오늘 기록: ml</p>
-                </div>
+                <div className="care-text"><h3>음수량 측정</h3><p>오늘 기록: ml</p></div>
               </div>
-              <div className="care-actions">
-                <button className="record-btn">기록하기 ❯</button>
-                <button className="delete-btn">🗑️</button>
-              </div>
+              <div className="care-actions"><button className="record-btn">기록하기 ❯</button><button className="delete-btn">🗑️</button></div>
             </div>
 
-            {/* 케어 리스트 2: 렉돌 빗질 */}
             <div className="care-item">
               <div className="care-left">
                 <div className="care-icon" style={{ borderColor: '#e9d5ff', color: '#9333ea', background: '#faf5ff' }}>🪮</div>
-                <div className="care-text">
-                  <h3>렉돌 코트 빗질</h3>
-                  <p>오늘 기록: 회</p>
-                </div>
+                <div className="care-text"><h3>렉돌 코트 빗질</h3><p>오늘 기록: 회</p></div>
               </div>
-              <div className="care-actions">
-                <button className="record-btn">기록하기 ❯</button>
-                <button className="delete-btn">🗑️</button>
-              </div>
+              <div className="care-actions"><button className="record-btn">기록하기 ❯</button><button className="delete-btn">🗑️</button></div>
             </div>
 
-            {/* 케어 리스트 3: 영양제 */}
             <div className="care-item">
               <div className="care-left">
                 <div className="care-icon" style={{ borderColor: '#fecdd3', color: '#e11d48', background: '#fff1f2' }}>💊</div>
-                <div className="care-text">
-                  <h3>영양제 챙기기</h3>
-                  <p>오늘 기록: 알</p>
-                </div>
+                <div className="care-text"><h3>영양제 챙기기</h3><p>오늘 기록: 알</p></div>
               </div>
-              <div className="care-actions">
-                <button className="record-btn">기록하기 ❯</button>
-                <button className="delete-btn">🗑️</button>
-              </div>
+              <div className="care-actions"><button className="record-btn">기록하기 ❯</button><button className="delete-btn">🗑️</button></div>
             </div>
 
             <button className="add-care-btn">+ 새로운 케어 항목 추가</button>
@@ -212,20 +174,13 @@ export default function App() {
           </div>
         )}
 
-        {/* === 2. 지출 탭 (기존 기능 유지) === */}
         {activeTab === 'expense' && (
           <div>
             <div className="card">
               <h3 style={{marginBottom: '15px'}}>🧾 새로운 지출 등록</h3>
               <form onSubmit={handleExpenseSubmit}>
-                <div className="form-group">
-                  <label>구매 항목</label>
-                  <input type="text" value={expName} onChange={e => setExpName(e.target.value)} placeholder="예) 로이 사료, 벨라 간식" required />
-                </div>
-                <div className="form-group">
-                  <label>결제 금액</label>
-                  <input type="number" value={expPrice} onChange={e => setExpPrice(e.target.value)} placeholder="금액을 숫자로 입력" required />
-                </div>
+                <div className="form-group"><label>구매 항목</label><input type="text" value={expName} onChange={e => setExpName(e.target.value)} placeholder="예) 로이 사료, 벨라 간식" required /></div>
+                <div className="form-group"><label>결제 금액</label><input type="number" value={expPrice} onChange={e => setExpPrice(e.target.value)} placeholder="금액을 숫자로 입력" required /></div>
                 <div className="form-group">
                   <label>영수증 및 구매 인증 샷</label>
                   <div className="upload-box">
@@ -245,10 +200,7 @@ export default function App() {
                   <div key={exp.id} className="expense-item">
                     <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                       {exp.img ? <img src={exp.img} className="expense-thumb" alt="영수증" /> : <div className="expense-thumb">NO IMG</div>}
-                      <div>
-                        <h4 style={{fontSize:'15px', marginBottom:'4px'}}>{exp.name}</h4>
-                        <p style={{fontSize:'12px', color:'#888'}}>{exp.date}</p>
-                      </div>
+                      <div><h4 style={{fontSize:'15px', marginBottom:'4px'}}>{exp.name}</h4><p style={{fontSize:'12px', color:'#888'}}>{exp.date}</p></div>
                     </div>
                     <div style={{fontWeight:'bold', color:'#e74c3c'}}>{exp.price}원</div>
                   </div>
@@ -258,14 +210,13 @@ export default function App() {
           </div>
         )}
 
-        {/* 기타 탭 더미 */}
         {activeTab === 'calendar' && <div className="card"><h3>달력 및 일정</h3></div>}
         {activeTab === 'album' && <div className="card"><h3>앨범</h3></div>}
         {activeTab === 'trash' && <div className="card"><h3>휴지통</h3></div>}
         {activeTab === 'create' && <div className="card"><h3>제작 과정</h3></div>}
       </main>
 
-      {/* 하단 네비게이션 (1번 이미지 텍스트 매칭) */}
+      {/* 3. 하단 네비게이션 및 테마 텍스트 */}
       <nav>
         {[
           { id: 'care', label: '오늘 케어', icon: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" },
@@ -280,12 +231,9 @@ export default function App() {
             <span>{item.label}</span>
           </button>
         ))}
+        {/* 터치를 방해하지 않는 (pointer-events: none) 하단 텍스트 */}
+        <div className="bottom-theme-text">🏡 전체 바탕 테마 변경</div>
       </nav>
-      
-      {/* 최하단 테마 변경 텍스트 */}
-      <div style={{position: 'absolute', bottom: '6px', width: '100%', textAlign: 'center', fontSize: '9px', color: '#999', zIndex: 101}}>
-        🏡 전체 바탕 테마 변경
-      </div>
     </div>
   );
 }
