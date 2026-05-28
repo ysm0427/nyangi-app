@@ -69,7 +69,7 @@ export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date()); const [selectedDate, setSelectedDate] = useState(new Date()); 
   const [schedules, setSchedules] = useState({}); 
   const [newSchedule, setNewSchedule] = useState('');
-  const [newScheduleTime, setNewScheduleTime] = useState(''); // 시간 상태 추가
+  const [newScheduleTime, setNewScheduleTime] = useState('');
 
   const currentYear = currentDate.getFullYear(); const currentMonth = currentDate.getMonth();
   const handlePrevMonth = () => setCurrentDate(new Date(currentYear, currentMonth - 1, 1)); const handleNextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
@@ -87,7 +87,6 @@ export default function App() {
     }
   };
 
-  // 🔔 알람 체크를 위한 백그라운드 타이머 (10초마다 확인)
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -100,14 +99,12 @@ export default function App() {
         const updatedDay = prev[dateStr].map(sch => {
           if (sch.time === timeStr && !sch.alerted) {
             isUpdated = true;
-            // 알림음 재생 (웹 오디오 API - 삐 소리)
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               const osc = ctx.createOscillator();
               osc.type = 'sine'; osc.frequency.value = 880; 
               osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.6);
             } catch(e) {}
-            // 알림창 띄우기
             setTimeout(() => alert(`⏰ 알림: [${sch.text}] 하실 시간입니다!`), 100);
             return { ...sch, alerted: true };
           }
@@ -127,8 +124,6 @@ export default function App() {
   const [albumPhotos, setAlbumPhotos] = useState([{ id: 1, src: 'https://via.placeholder.com/150/eeeeee/aaaaaa?text=Photo+1' }]); 
   const albumInputRef = useRef(null); 
   const [settingView, setSettingView] = useState(null);
-  
-  // 롱프레스(꾹 누르기) 삭제 타이머를 위한 상태
   const pressTimer = useRef(null);
 
   const handleExpenseSubmit = (e) => { e.preventDefault(); setExpenses([{ id: Date.now(), name: expName, date: new Date().toLocaleDateString(), price: Number(expPrice).toLocaleString(), img: expImg, pet: expTargetPet }, ...expenses]); setExpName(''); setExpPrice(''); setExpImg(null); };
@@ -141,16 +136,14 @@ export default function App() {
     setAlbumPhotos(prev => [...newPhotos, ...prev]);
   };
   
-  // 앨범 롱프레스 시작 시
   const handlePressStart = (photo) => {
     pressTimer.current = setTimeout(() => {
       if(window.confirm('이 사진을 삭제하시겠습니까?\n(휴지통으로 이동합니다)')) {
         setTrashItems(prev => [{ id: Date.now(), type: 'photo', title: '앨범 사진', date: new Date().toLocaleDateString(), src: photo.src, originalId: photo.id }, ...prev]);
         setAlbumPhotos(prev => prev.filter(p => p.id !== photo.id));
       }
-    }, 700); // 0.7초 누르면 발동
+    }, 700);
   };
-  // 롱프레스 취소 (손을 뗐을 때)
   const handlePressEnd = () => { if(pressTimer.current) clearTimeout(pressTimer.current); };
 
   const handleRestoreTrash = (item) => {
@@ -166,7 +159,7 @@ export default function App() {
     }
   };
 
-  // ================= 🎨 테마 연동 동적 CSS =================
+  // ================= 🎨 동적 CSS & 레이아웃 최적화 =================
   const styles = `
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: #e8eaed; color: #333; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -174,18 +167,22 @@ export default function App() {
     @media (min-width: 481px) { #app-container { box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; } }
     .fade-in { animation: fadeIn 0.2s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    .top-pet-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background-color: ${currentTheme.bg}; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; flex-shrink: 0; z-index: 10; transition: background-color 0.3s; }
-    .pet-tab { background: #fff; border: 1px solid #e0e0e0; padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; color: #999; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+    /* 💡 수정 1: 상단 펫 탭 좌우 나란히 배치 강제 적용 */
+    .top-pet-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background-color: ${currentTheme.bg}; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; flex-shrink: 0; z-index: 10; gap: 10px; transition: background-color 0.3s; }
+    .pet-tabs { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .pet-tabs::-webkit-scrollbar { display: none; }
+    .pet-tab { white-space: nowrap; flex-shrink: 0; background: #fff; border: 1px solid #e0e0e0; padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; color: #999; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
     .pet-tab.active { color: #333; border-color: ${currentTheme.border}; box-shadow: 0 2px 5px ${currentTheme.color}33; }
+    .pet-edit-btn { white-space: nowrap; flex-shrink: 0; background: #344054; color: #fff; border: none; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    
     .btn-theme { width: 100%; background: ${currentTheme.border}; color: ${currentTheme.color}; border: none; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
     
     .page-header { padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); background: #fff; font-size: 18px; font-weight: 700; text-align: center; border-bottom: 1px solid #eee; z-index: 10; }
-    .pet-edit-btn { background: #344054; color: #fff; border: none; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
     main { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
     .card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #eaeaea; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     
     .profile-card { background: #fff; border: 1px solid ${currentTheme.border}; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 20px; position: relative; }
-    .profile-avatar { width: 75px; height: 75px; border-radius: 50%; border: 2px dashed #d1d5db; display: flex; justify-content: center; align-items: center; font-size: 30px; background: #f9fafb; cursor: pointer; overflow: hidden; position: relative; }
+    .profile-avatar { width: 75px; height: 75px; border-radius: 50%; border: 2px dashed #d1d5db; display: flex; justify-content: center; align-items: center; font-size: 30px; background: #f9fafb; cursor: pointer; overflow: hidden; position: relative; flex-shrink: 0; }
     .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .delete-photo-btn { position: absolute; top: 10px; right: 10px; background: #fee2e2; color: #ef4444; border: none; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; z-index: 5; }
     
@@ -195,7 +192,6 @@ export default function App() {
     .action-icon-btn { background: #f5f5f5; border: none; color: #555; font-size: 14px; cursor: pointer; padding: 8px; border-radius: 8px; margin-left: 5px; }
     .action-icon-btn.delete { background: #fee2e2; color: #ef4444; }
 
-    /* 모달 UI */
     .modal-overlay { position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 300; display: flex; justify-content: center; align-items: center; padding: 20px; }
     .modal-content { background: #fff; width: 100%; max-width: 360px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     .modal-input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 12px; font-size: 15px; outline: none; }
@@ -204,7 +200,6 @@ export default function App() {
     .exp-pet-tab { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #666; font-size: 14px; cursor: pointer; text-align: center; }
     .exp-pet-tab.active { border: 2px solid ${currentTheme.border}; background: ${currentTheme.bg}; color: ${currentTheme.color}; font-weight: bold; }
 
-    /* 앨범 아이템 꾹 누르기 위한 CSS (모바일 사진 저장 방지) */
     .album-item-container { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #eee; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: pointer; }
     .album-item-container img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
     
@@ -279,12 +274,10 @@ export default function App() {
           </div>
         )}
 
-        {/* 🐾 좌우 배치된 냥이 프로필 추가/수정 팝업창 */}
         {showPetModal && (
           <div className="modal-overlay">
             <div className="modal-content fade-in">
               <h3 style={{marginBottom:'15px'}}>🐾 프로필 수정</h3>
-              {/* 좌우 탭 메뉴 (Flex) */}
               <div style={{display: 'flex', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', marginBottom: '20px'}}>
                 <button style={{flex: 1, padding: '12px', border: 'none', background: editTarget === 'vella' ? currentTheme.bg : '#fff', fontWeight: editTarget === 'vella' ? 'bold' : 'normal', color: editTarget === 'vella' ? currentTheme.color : '#666'}} onClick={() => handleEditTargetChange('vella')}>👑 벨라</button>
                 <button style={{flex: 1, padding: '12px', border: 'none', borderLeft: '1px solid #ddd', background: editTarget === 'roy' ? currentTheme.bg : '#fff', fontWeight: editTarget === 'roy' ? 'bold' : 'normal', color: editTarget === 'roy' ? currentTheme.color : '#666'}} onClick={() => handleEditTargetChange('roy')}>🍼 로이</button>
@@ -305,7 +298,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 케어 항목 추가/수정 팝업창 */}
         {careModalConfig.isOpen && (
           <div className="modal-overlay">
             <div className="modal-content fade-in">
@@ -320,7 +312,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 2. 종합 달력 (시간 알림 적용) ================= */}
+        {/* ================= 2. 종합 달력 (모바일 시간 UI 수정) ================= */}
         {activeTab === 'calendar' && (
           <div className="fade-in">
             <div className="card">
@@ -342,12 +334,14 @@ export default function App() {
             <div className="card">
               <h3 style={{fontSize:'15px', marginBottom:'15px'}}>📝 {selectedDate.getMonth()+1}월 {selectedDate.getDate()}일 일정 등록</h3>
               
-              <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
-                <input style={{flex:1, padding:'10px', borderRadius:'8px', border:'1px solid #ddd'}} placeholder="새로운 일정 입력" value={newSchedule} onChange={e => setNewSchedule(e.target.value)} />
-                {/* 🔔 시간 입력 칸 추가 */}
-                <input type="time" style={{padding:'10px', borderRadius:'8px', border:'1px solid #ddd', width: '120px'}} value={newScheduleTime} onChange={e => setNewScheduleTime(e.target.value)} />
+              {/* 💡 수정 2: 가로 공간 부족 방지를 위한 모바일 친화적 상하 스택 폼 */}
+              <div style={{display:'flex', flexDirection: 'column', gap:'10px', marginBottom:'15px'}}>
+                <input style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize: '15px'}} placeholder="새로운 일정 내용 입력" value={newSchedule} onChange={e => setNewSchedule(e.target.value)} />
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <input type="time" style={{flex: 1, padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize: '15px'}} value={newScheduleTime} onChange={e => setNewScheduleTime(e.target.value)} />
+                  <button style={{flex: 1, background:currentTheme.border, color:currentTheme.color, border:'none', borderRadius:'8px', fontWeight:'bold', fontSize: '15px'}} onClick={handleAddSchedule}>등록하기</button>
+                </div>
               </div>
-              <button style={{width:'100%', padding:'12px', background:currentTheme.border, color:currentTheme.color, border:'none', borderRadius:'8px', fontWeight:'bold', marginBottom:'15px'}} onClick={handleAddSchedule}>등록하기</button>
               
               {(schedules[selectedDateString] || []).length === 0 ? (
                 <p style={{fontSize:'13px', color:'#999'}}>등록된 일정이 없습니다.</p>
@@ -400,7 +394,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 4. 냥이 앨범 (롱프레스 삭제 지원) ================= */}
+        {/* ================= 4. 냥이 앨범 ================= */}
         {activeTab === 'album' && (
           <div className="fade-in">
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center'}}>
@@ -415,13 +409,12 @@ export default function App() {
                 <div 
                   key={photo.id} 
                   className="album-item-container fade-in"
-                  // 모바일 롱프레스 (꾹 누르기) 이벤트 적용
                   onTouchStart={() => handlePressStart(photo)}
                   onTouchEnd={handlePressEnd}
                   onMouseDown={() => handlePressStart(photo)}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
-                  onContextMenu={(e) => e.preventDefault()} // 모바일 기본 팝업 방지
+                  onContextMenu={(e) => e.preventDefault()}
                 >
                   <img src={photo.src} alt="냥이" />
                 </div>
@@ -433,7 +426,7 @@ export default function App() {
         {/* ================= 5. 휴지통 ================= */}
         {activeTab === 'trash' && (
           <div className="fade-in">
-            <p style={{fontSize:'13px', color:'#888', marginBottom:'15px'}}>삭제된 케어 항목 및 사진을 복구할 수 있습니다.</p>
+            <p style={{fontSize:'13px', color:'#888', marginBottom:'15px'}}>삭제된 항목 및 사진을 복구할 수 있습니다.</p>
             {trashItems.length === 0 && <div className="card" style={{textAlign:'center', color:'#999'}}>휴지통이 비어있습니다.</div>}
             
             {trashItems.map(item => (
@@ -465,7 +458,7 @@ export default function App() {
                   </li>
                   <li onClick={() => setSettingView('guide')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>📖 앱 사용 가이드</span> <span>❯</span></li>
                   <li onClick={() => setSettingView('dev')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>💬 개발자 문의</span> <span>❯</span></li>
-                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.5</span></li>
+                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.6</span></li>
                 </ul>
               </div>
             ) : (
@@ -476,7 +469,7 @@ export default function App() {
                 </div>
                 <div style={{fontSize:'14px', lineHeight:'1.6', color:'#555', paddingBottom:'20px'}}>
                   {settingView === 'guide' && '✔️ 앨범의 사진을 1초간 꾹~ 누르면 삭제 후 휴지통으로 이동합니다.\n✔️ 달력에서 일정을 등록할 때 시간을 지정하면 알람이 울립니다.\n✔️ 오늘 케어 탭에서 ✏️ 버튼을 눌러 항목을 언제든 수정하세요.'}
-                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.5 (알람 및 롱프레스 기능 완벽 탑재!)'}
+                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.6 (모바일 UI 최적화 완료)'}
                 </div>
               </div>
             )}
@@ -484,7 +477,7 @@ export default function App() {
         )}
       </main>
 
-      {/* 🐾 커스텀 하단 네비게이션 */}
+      {/* 🐾 하단 네비게이션 */}
       <nav>
         {navItems.map(item => (
           <button key={item.id} className={`nav-btn ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}>
