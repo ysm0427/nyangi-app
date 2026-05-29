@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 // ==========================================
-// 💡 핵심 추가 기능: 자동 저장 커스텀 훅
+// 💡 자동 저장 커스텀 훅
 // ==========================================
 function useLocalStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {
@@ -18,9 +18,8 @@ function useLocalStorage(key, initialValue) {
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
-      // 사진을 너무 많이 올려 용량이 꽉 찼을 때의 경고창
       if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        alert('⚠️ 스마트폰 웹 브라우저 저장 용량이 꽉 찼습니다!\n너무 큰 사진이 많이 저장되었을 수 있으니, 앨범이나 휴지통의 사진을 지워주세요.');
+        alert('⚠️ 저장 용량이 꽉 찼습니다! 기존 지출 영수증이나 휴지통을 비워주세요.');
       }
     }
   }, [key, storedValue]);
@@ -41,16 +40,16 @@ export default function App() {
   const [themeIdx, setThemeIdx] = useLocalStorage('nyangi_theme', 0);
   const currentTheme = themes[themeIdx];
 
+  // 💡 앨범 탭 제거됨
   const navItems = [
     { id: 'care', label: '오늘 케어', icon: "🐾" },
     { id: 'calendar', label: '종합 달력', icon: "📅" },
     { id: 'expense', label: '지출 관리', icon: "💸" },
-    { id: 'album', label: '냥이 앨범', icon: "📸" },
     { id: 'trash', label: '휴지통', icon: "🗑️" },
     { id: 'create', label: '설정/제작', icon: "⚙️" }
   ];
 
-  // === 1. 냥이 프로필 (자동 저장) ===
+  // === 1. 냥이 프로필 ===
   const [pets, setPets] = useLocalStorage('nyangi_pets', {
     vella: { id: 'vella', name: '벨라', gender: '여아 ♀', birth: '2024-01-20', icon: '👑', img: null },
     roy: { id: 'roy', name: '로이', gender: '남아 ♂', birth: '2025-03-15', icon: '🍼', img: null }
@@ -62,21 +61,13 @@ export default function App() {
   const profileInputRef = useRef(null);
 
   const handleProfileUpload = (e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend=()=>setPets({...pets, [activePet]: {...pets[activePet], img: r.result}}); r.readAsDataURL(f); } };
-  
-  const handleProfileDelete = () => {
-    if(window.confirm('프로필 사진을 삭제하시겠습니까?')) {
-      setPets({...pets, [activePet]: {...pets[activePet], img: null}});
-    }
-  };
+  const handleProfileDelete = () => { if(window.confirm('프로필 사진을 삭제하시겠습니까?')) { setPets({...pets, [activePet]: {...pets[activePet], img: null}}); } };
   
   const openPetEditModal = () => { setEditTarget(activePet); setEditPetData(pets[activePet]); setShowPetModal(true); };
-  const handleEditTargetChange = (target) => {
-    setPets({...pets, [editTarget]: {...pets[editTarget], ...editPetData}});
-    setEditTarget(target); setEditPetData(pets[target]);
-  };
+  const handleEditTargetChange = (target) => { setPets({...pets, [editTarget]: {...pets[editTarget], ...editPetData}}); setEditTarget(target); setEditPetData(pets[target]); };
   const savePetEdit = () => { setPets({...pets, [editTarget]: {...pets[editTarget], ...editPetData}}); setShowPetModal(false); };
 
-  // === 2. 케어 항목 (자동 저장) ===
+  // === 2. 케어 항목 ===
   const [careList, setCareList] = useLocalStorage('nyangi_care_list', {
     vella: [{ id: 1, icon: '💧', title: '음수량 측정', unit: 'ml', color: '#3b82f6', bg: '#eff6ff', borderColor: '#bfdbfe' }, { id: 2, icon: '🪮', title: '코트 빗질', unit: '회', color: '#9333ea', bg: '#faf5ff', borderColor: '#e9d5ff' }],
     roy: [{ id: 3, icon: '💊', title: '영양제 챙기기', unit: '알', color: '#e11d48', bg: '#fff1f2', borderColor: '#fecdd3' }]
@@ -87,19 +78,12 @@ export default function App() {
 
   const openCareModal = (mode, item = null) => { setCareModalConfig({ isOpen: true, mode, editId: item ? item.id : null }); setCareTitle(item ? item.title : ''); setCareUnit(item ? item.unit : ''); };
   const saveCareItem = () => { if(!careTitle) return; if (careModalConfig.mode === 'add') { const newItem = { id: Date.now(), icon: '✨', title: careTitle, unit: careUnit || '회', color: currentTheme.color, bg: currentTheme.bg, borderColor: currentTheme.border }; setCareList({...careList, [activePet]: [...careList[activePet], newItem]}); } else { setCareList({...careList, [activePet]: careList[activePet].map(item => item.id === careModalConfig.editId ? { ...item, title: careTitle, unit: careUnit } : item)}); } setCareModalConfig({ isOpen: false, mode: 'add', editId: null }); };
-  
-  const handleDeleteCare = (item) => { 
-    if(window.confirm(`'${item.title}' 항목을 삭제하시겠습니까?\n(휴지통으로 이동합니다.)`)) {
-      setTrashItems([{ id: Date.now(), type: 'care', title: item.title, date: new Date().toLocaleDateString(), originalData: item, petId: activePet }, ...trashItems]); 
-      setCareList({...careList, [activePet]: careList[activePet].filter(i => i.id !== item.id)}); 
-    }
-  };
+  const handleDeleteCare = (item) => { if(window.confirm(`'${item.title}' 항목을 삭제하시겠습니까?\n(휴지통으로 이동합니다.)`)) { setTrashItems([{ id: Date.now(), type: 'care', title: item.title, date: new Date().toLocaleDateString(), originalData: item, petId: activePet }, ...trashItems]); setCareList({...careList, [activePet]: careList[activePet].filter(i => i.id !== item.id)}); } };
 
-  // === 3. 종합 달력 & 알람 (자동 저장) ===
+  // === 3. 종합 달력 ===
   const [currentDate, setCurrentDate] = useState(new Date()); 
   const [selectedDate, setSelectedDate] = useState(new Date()); 
   const [schedules, setSchedules] = useLocalStorage('nyangi_schedules', {}); 
-  
   const [newSchedule, setNewSchedule] = useState('');
   const [newScheduleTime, setNewScheduleTime] = useState('');
 
@@ -107,19 +91,9 @@ export default function App() {
   const handlePrevMonth = () => setCurrentDate(new Date(currentYear, currentMonth - 1, 1)); const handleNextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   const selectedDateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth()+1}-${selectedDate.getDate()}`;
   
-  const handleAddSchedule = () => { 
-    if(!newSchedule) return; 
-    setSchedules({...schedules, [selectedDateString]: [...(schedules[selectedDateString] || []), { id: Date.now(), text: newSchedule, time: newScheduleTime, alerted: false }]}); 
-    setNewSchedule(''); setNewScheduleTime(''); 
-  };
-  
-  const handleDeleteSchedule = (dateStr, id) => { 
-    if(window.confirm('이 일정을 삭제하시겠습니까?')) {
-      setSchedules({...schedules, [dateStr]: schedules[dateStr].filter(s => s.id !== id)});
-    }
-  };
+  const handleAddSchedule = () => { if(!newSchedule) return; setSchedules({...schedules, [selectedDateString]: [...(schedules[selectedDateString] || []), { id: Date.now(), text: newSchedule, time: newScheduleTime, alerted: false }]}); setNewSchedule(''); setNewScheduleTime(''); };
+  const handleDeleteSchedule = (dateStr, id) => { if(window.confirm('이 일정을 삭제하시겠습니까?')) { setSchedules({...schedules, [dateStr]: schedules[dateStr].filter(s => s.id !== id)}); } };
 
-  // 알람 체크 타이머
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -132,12 +106,7 @@ export default function App() {
         const updatedDay = prev[dateStr].map(sch => {
           if (sch.time === timeStr && !sch.alerted) {
             isUpdated = true;
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const osc = ctx.createOscillator();
-              osc.type = 'sine'; osc.frequency.value = 880; 
-              osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.6);
-            } catch(e) {}
+            try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 880; osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.6); } catch(e) {}
             setTimeout(() => alert(`⏰ 알림: [${sch.text}] 하실 시간입니다!`), 100);
             return { ...sch, alerted: true };
           }
@@ -150,51 +119,43 @@ export default function App() {
     return () => clearInterval(timer);
   }, [setSchedules]);
 
-  // === 4. 지출, 휴지통, 앨범 (자동 저장) ===
+  // === 4. 지출 관리 (실시간 합계 기능 추가) ===
   const [expenses, setExpenses] = useLocalStorage('nyangi_expenses', []); 
   const [expName, setExpName] = useState(''); const [expPrice, setExpPrice] = useState(''); const [expImg, setExpImg] = useState(null); const [expTargetPet, setExpTargetPet] = useState('공통');
-  
   const [trashItems, setTrashItems] = useLocalStorage('nyangi_trash', []); 
-  const [albumPhotos, setAlbumPhotos] = useLocalStorage('nyangi_album', []); 
-  
-  const albumInputRef = useRef(null); 
   const [settingView, setSettingView] = useState(null);
-  const pressTimer = useRef(null);
 
-  const handleExpenseSubmit = (e) => { e.preventDefault(); setExpenses([{ id: Date.now(), name: expName, date: new Date().toLocaleDateString(), price: Number(expPrice).toLocaleString(), img: expImg, pet: expTargetPet }, ...expenses]); setExpName(''); setExpPrice(''); setExpImg(null); };
-  
-  const handleAlbumUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if(files.length === 0) return;
-    const filePromises = files.map(file => new Promise(resolve => { const reader = new FileReader(); reader.onloadend = () => resolve({ id: Date.now() + Math.random(), src: reader.result }); reader.readAsDataURL(file); }));
-    const newPhotos = await Promise.all(filePromises);
-    setAlbumPhotos(prev => [...newPhotos, ...prev]);
-  };
-  
-  const handlePressStart = (photo) => {
-    pressTimer.current = setTimeout(() => {
-      if(window.confirm('이 사진을 삭제하시겠습니까?\n(휴지통으로 이동합니다)')) {
-        setTrashItems(prev => [{ id: Date.now(), type: 'photo', title: '앨범 사진', date: new Date().toLocaleDateString(), src: photo.src, originalId: photo.id }, ...prev]);
-        setAlbumPhotos(prev => prev.filter(p => p.id !== photo.id));
-      }
-    }, 700);
-  };
-  const handlePressEnd = () => { if(pressTimer.current) clearTimeout(pressTimer.current); };
+  const handleExpenseSubmit = (e) => { 
+    e.preventDefault(); 
+    // 숫자만 추출하여 저장
+    const purePrice = String(expPrice).replace(/[^0-9]/g, '');
+    if(!purePrice) return;
 
+    setExpenses([{ id: Date.now(), name: expName, date: new Date().toLocaleDateString(), price: Number(purePrice).toLocaleString(), rawPrice: Number(purePrice), img: expImg, pet: expTargetPet }, ...expenses]); 
+    setExpName(''); setExpPrice(''); setExpImg(null); 
+  };
+  const handleDeleteExpense = (id) => {
+    if(window.confirm('이 지출 내역을 삭제하시겠습니까?')) {
+      setExpenses(expenses.filter(e => e.id !== id));
+    }
+  };
+
+  // 💡 실시간 지출 합계 계산 로직
+  const totalCommon = expenses.filter(e => e.pet === '공통').reduce((acc, curr) => acc + (curr.rawPrice || Number(String(curr.price).replace(/[^0-9]/g, ''))), 0);
+  const totalVella = expenses.filter(e => e.pet === '벨라').reduce((acc, curr) => acc + (curr.rawPrice || Number(String(curr.price).replace(/[^0-9]/g, ''))), 0);
+  const totalRoy = expenses.filter(e => e.pet === '로이').reduce((acc, curr) => acc + (curr.rawPrice || Number(String(curr.price).replace(/[^0-9]/g, ''))), 0);
+  const totalAll = totalCommon + totalVella + totalRoy;
+
+  // === 5. 휴지통 관리 ===
   const handleRestoreTrash = (item) => {
     if(window.confirm('이 항목을 원래 위치로 복구하시겠습니까?')) {
       if(item.type === 'care') setCareList({...careList, [item.petId]: [...careList[item.petId], item.originalData]});
-      if(item.type === 'photo') setAlbumPhotos([{id: item.originalId, src: item.src}, ...albumPhotos]); 
       setTrashItems(trashItems.filter(i => i.id !== item.id)); 
     }
   };
-  const handlePermanentDelete = (id) => {
-    if(window.confirm('정말 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
-      setTrashItems(trashItems.filter(i => i.id !== id));
-    }
-  };
+  const handlePermanentDelete = (id) => { if(window.confirm('정말 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) { setTrashItems(trashItems.filter(i => i.id !== id)); } };
 
-  // ================= 🎨 동적 CSS & 레이아웃 최적화 =================
+  // ================= 🎨 동적 CSS =================
   const styles = `
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: #e8eaed; color: #333; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -233,10 +194,12 @@ export default function App() {
 
     .exp-pet-tab { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #666; font-size: 14px; cursor: pointer; text-align: center; }
     .exp-pet-tab.active { border: 2px solid ${currentTheme.border}; background: ${currentTheme.bg}; color: ${currentTheme.color}; font-weight: bold; }
-
-    .album-item-container { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #eee; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: pointer; }
-    .album-item-container img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
     
+    /* 지출 요약 대시보드 카드 스타일 */
+    .sum-box { padding: 12px; border-radius: 10px; text-align: center; }
+    .sum-title { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .sum-value { font-size: 16px; font-weight: bold; }
+
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
     .cal-day-name { font-size: 12px; color: #888; padding-bottom: 10px; }
@@ -269,7 +232,6 @@ export default function App() {
         <div className="page-header fade-in">
           {activeTab === 'calendar' && '종합 달력'}
           {activeTab === 'expense' && '지출 관리'}
-          {activeTab === 'album' && '냥이 앨범'}
           {activeTab === 'trash' && '휴지통'}
           {activeTab === 'create' && '설정 및 제작'}
         </div>
@@ -316,14 +278,12 @@ export default function App() {
                 <button style={{flex: 1, padding: '12px', border: 'none', background: editTarget === 'vella' ? currentTheme.bg : '#fff', fontWeight: editTarget === 'vella' ? 'bold' : 'normal', color: editTarget === 'vella' ? currentTheme.color : '#666'}} onClick={() => handleEditTargetChange('vella')}>👑 벨라</button>
                 <button style={{flex: 1, padding: '12px', border: 'none', borderLeft: '1px solid #ddd', background: editTarget === 'roy' ? currentTheme.bg : '#fff', fontWeight: editTarget === 'roy' ? 'bold' : 'normal', color: editTarget === 'roy' ? currentTheme.color : '#666'}} onClick={() => handleEditTargetChange('roy')}>🍼 로이</button>
               </div>
-
               <label style={{fontSize:'13px', color:'#666'}}>이름</label>
               <input className="modal-input" value={editPetData.name} onChange={e => setEditPetData({...editPetData, name: e.target.value})} />
               <label style={{fontSize:'13px', color:'#666'}}>성별 (예: 여아 ♀)</label>
               <input className="modal-input" value={editPetData.gender} onChange={e => setEditPetData({...editPetData, gender: e.target.value})} />
               <label style={{fontSize:'13px', color:'#666'}}>생일 (예: 2024-01-20)</label>
               <input className="modal-input" value={editPetData.birth} onChange={e => setEditPetData({...editPetData, birth: e.target.value})} />
-              
               <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
                 <button className="btn-theme" style={{background:'#eee', color:'#333'}} onClick={() => setShowPetModal(false)}>취소</button>
                 <button className="btn-theme" onClick={savePetEdit}>저장</button>
@@ -367,7 +327,6 @@ export default function App() {
             </div>
             <div className="card">
               <h3 style={{fontSize:'15px', marginBottom:'15px'}}>📝 {selectedDate.getMonth()+1}월 {selectedDate.getDate()}일 일정 등록</h3>
-              
               <div style={{display:'flex', flexDirection: 'column', gap:'10px', marginBottom:'15px'}}>
                 <input style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize: '15px'}} placeholder="새로운 일정 내용 입력" value={newSchedule} onChange={e => setNewSchedule(e.target.value)} />
                 <div style={{display: 'flex', gap: '10px'}}>
@@ -375,7 +334,6 @@ export default function App() {
                   <button style={{flex: 1, background:currentTheme.border, color:currentTheme.color, border:'none', borderRadius:'8px', fontWeight:'bold', fontSize: '15px'}} onClick={handleAddSchedule}>등록하기</button>
                 </div>
               </div>
-              
               {(schedules[selectedDateString] || []).length === 0 ? (
                 <p style={{fontSize:'13px', color:'#999'}}>등록된 일정이 없습니다.</p>
               ) : (
@@ -390,11 +348,34 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 3. 지출 관리 ================= */}
+        {/* ================= 3. 지출 관리 (실시간 합계 기능 탑재) ================= */}
         {activeTab === 'expense' && (
           <div className="fade-in">
+            {/* 💡 지출 자동 계산 대시보드 */}
             <div className="card">
-              <h3 style={{marginBottom: '15px'}}>🧾 지출 등록</h3>
+              <h3 style={{marginBottom:'15px', fontSize:'16px'}}>📊 누적 지출 요약</h3>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
+                <div className="sum-box" style={{background:'#f9fafb', gridColumn: '1 / span 2'}}>
+                  <p className="sum-title">총 합계 금액</p>
+                  <h4 className="sum-value" style={{color:'#e74c3c', fontSize:'20px'}}>{totalAll.toLocaleString()}원</h4>
+                </div>
+                <div className="sum-box" style={{background:'#f0fdf4'}}>
+                  <p className="sum-title">공통 지출</p>
+                  <h4 className="sum-value" style={{color:'#16a34a'}}>{totalCommon.toLocaleString()}원</h4>
+                </div>
+                <div className="sum-box" style={{background:'#fff1f2'}}>
+                  <p className="sum-title">👑 벨라 전용</p>
+                  <h4 className="sum-value" style={{color:'#e11d48'}}>{totalVella.toLocaleString()}원</h4>
+                </div>
+                <div className="sum-box" style={{background:'#eff6ff', gridColumn: '1 / span 2'}}>
+                  <p className="sum-title">🍼 로이 전용</p>
+                  <h4 className="sum-value" style={{color:'#2563eb'}}>{totalRoy.toLocaleString()}원</h4>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 style={{marginBottom: '15px'}}>🧾 지출 내역 추가</h3>
               <form onSubmit={handleExpenseSubmit}>
                 <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
                   {['공통', '벨라', '로이'].map(pet => (
@@ -402,55 +383,28 @@ export default function App() {
                   ))}
                 </div>
                 <input style={{width:'100%', padding:'12px', marginBottom:'10px', border:'1px solid #ddd', borderRadius:'8px'}} placeholder="항목 이름" value={expName} onChange={e=>setExpName(e.target.value)} required />
-                <input style={{width:'100%', padding:'12px', marginBottom:'10px', border:'1px solid #ddd', borderRadius:'8px'}} type="number" placeholder="금액" value={expPrice} onChange={e=>setExpPrice(e.target.value)} required />
+                <input style={{width:'100%', padding:'12px', marginBottom:'10px', border:'1px solid #ddd', borderRadius:'8px'}} type="number" placeholder="금액 (숫자만 입력)" value={expPrice} onChange={e=>setExpPrice(e.target.value)} required />
                 <input type="file" style={{marginBottom:'15px'}} accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=()=>setExpImg(r.result); r.readAsDataURL(f); } }} />
-                <button type="submit" className="btn-theme">저장하기</button>
+                <button type="submit" className="btn-theme">등록하기</button>
               </form>
             </div>
+            
             <div className="card">
+              <h3 style={{marginBottom: '15px'}}>최근 내역</h3>
+              {expenses.length === 0 && <p style={{fontSize:'13px', color:'#999', textAlign:'center'}}>지출 내역이 없습니다.</p>}
               {expenses.map(exp => (
                 <div key={exp.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'15px 0', borderBottom:'1px solid #eee'}}>
-                  <div style={{display:'flex', gap:'12px'}}>
+                  <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                     {exp.img ? <img src={exp.img} style={{width:'40px', height:'40px', borderRadius:'8px'}} alt="영수증" /> : <div style={{width:'40px',height:'40px',background:'#eee',borderRadius:'8px',fontSize:'10px',display:'flex',alignItems:'center',justifyContent:'center'}}>사진없음</div>}
                     <div>
-                      <h4 style={{fontSize:'14px', marginBottom:'4px'}}>
-                        <span style={{fontSize:'10px', background:'#f0f0f0', padding:'2px 6px', borderRadius:'4px', marginRight:'6px', color:'#555'}}>{exp.pet}</span>
-                        {exp.name}
-                      </h4>
+                      <h4 style={{fontSize:'14px', marginBottom:'4px'}}><span style={{fontSize:'10px', background:'#f0f0f0', padding:'2px 6px', borderRadius:'4px', marginRight:'6px', color:'#555'}}>{exp.pet}</span>{exp.name}</h4>
                       <p style={{fontSize:'11px', color:'#888'}}>{exp.date}</p>
                     </div>
                   </div>
-                  <div style={{fontWeight:'bold', color:'#e74c3c'}}>{exp.price}원</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= 4. 냥이 앨범 ================= */}
-        {activeTab === 'album' && (
-          <div className="fade-in">
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center'}}>
-              <h3 style={{fontSize: '13px', color: '#888'}}>사진을 꾹~ 누르면 삭제할 수 있어요</h3>
-              <input type="file" multiple ref={albumInputRef} style={{display:'none'}} accept="image/*" onChange={handleAlbumUpload} />
-              <button onClick={() => albumInputRef.current.click()} style={{background:currentTheme.border, color:currentTheme.color, border:'none', padding:'10px 16px', borderRadius:'10px', fontWeight:'bold', cursor:'pointer'}}>
-                + 사진 등록
-              </button>
-            </div>
-            {albumPhotos.length === 0 && <div className="card" style={{textAlign:'center', color:'#999'}}>등록된 사진이 없습니다.</div>}
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'8px'}}>
-              {albumPhotos.map((photo) => (
-                <div 
-                  key={photo.id} 
-                  className="album-item-container fade-in"
-                  onTouchStart={() => handlePressStart(photo)}
-                  onTouchEnd={handlePressEnd}
-                  onMouseDown={() => handlePressStart(photo)}
-                  onMouseUp={handlePressEnd}
-                  onMouseLeave={handlePressEnd}
-                  onContextMenu={(e) => e.preventDefault()}
-                >
-                  <img src={photo.src} alt="냥이" />
+                  <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                    <span style={{fontWeight:'bold', color:'#333'}}>{exp.price}원</span>
+                    <button style={{background:'none', border:'none', color:'#ccc', fontSize:'16px'}} onClick={() => handleDeleteExpense(exp.id)}>✕</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -460,17 +414,14 @@ export default function App() {
         {/* ================= 5. 휴지통 ================= */}
         {activeTab === 'trash' && (
           <div className="fade-in">
-            <p style={{fontSize:'13px', color:'#888', marginBottom:'15px'}}>삭제된 항목 및 사진을 복구할 수 있습니다.</p>
+            <p style={{fontSize:'13px', color:'#888', marginBottom:'15px'}}>삭제된 케어 항목을 복구할 수 있습니다.</p>
             {trashItems.length === 0 && <div className="card" style={{textAlign:'center', color:'#999'}}>휴지통이 비어있습니다.</div>}
             
             {trashItems.map(item => (
               <div key={item.id} className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'15px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                  {item.type === 'photo' && <img src={item.src} style={{width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover'}} alt="thumb" />}
-                  <div>
-                    <h4 style={{fontSize:'15px', textDecoration:'line-through', color:'#666'}}>{item.title}</h4>
-                    <p style={{fontSize:'12px', color:'#aaa', marginTop:'4px'}}>삭제일: {item.date}</p>
-                  </div>
+                <div>
+                  <h4 style={{fontSize:'15px', textDecoration:'line-through', color:'#666'}}>{item.title}</h4>
+                  <p style={{fontSize:'12px', color:'#aaa', marginTop:'4px'}}>삭제일: {item.date}</p>
                 </div>
                 <div style={{display:'flex', gap:'5px'}}>
                   <button onClick={() => handleRestoreTrash(item)} style={{background:'#3b82f6', color:'white', border:'none', padding:'8px', borderRadius:'8px', fontSize:'12px'}}>복구</button>
@@ -492,7 +443,7 @@ export default function App() {
                   </li>
                   <li onClick={() => setSettingView('guide')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>📖 앱 사용 가이드</span> <span>❯</span></li>
                   <li onClick={() => setSettingView('dev')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>💬 개발자 문의</span> <span>❯</span></li>
-                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.8 (자동 저장 탑재)</span></li>
+                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.8 (자동저장)</span></li>
                 </ul>
               </div>
             ) : (
@@ -502,8 +453,8 @@ export default function App() {
                   <span>{settingView === 'guide' ? '사용 가이드' : '개발자 문의'}</span>
                 </div>
                 <div style={{fontSize:'14px', lineHeight:'1.6', color:'#555', paddingBottom:'20px'}}>
-                  {settingView === 'guide' && '✔️ 데이터는 스마트폰에 자동 저장됩니다.\n✔️ 앨범의 사진을 1초간 꾹~ 누르면 휴지통으로 이동합니다.\n✔️ 달력에서 시간을 지정하면 팝업 알람이 울립니다.\n✔️ 오늘 케어 탭에서 ✏️ 버튼을 눌러 항목을 언제든 수정하세요.'}
-                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.8 (자동저장 및 알람 완벽 지원)'}
+                  {settingView === 'guide' && '✔️ 데이터는 스마트폰에 자동 저장되어 끄셔도 날아가지 않습니다!\n✔️ 달력에서 시간을 지정하면 알림이 울립니다.\n✔️ 지출 관리에 금액을 입력하면 전체/냥이별 누적 금액이 자동으로 계산됩니다.'}
+                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.8 (자동저장 및 실시간 지출 합계 기능 완벽 탑재)'}
                 </div>
               </div>
             )}
