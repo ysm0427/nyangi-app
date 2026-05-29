@@ -1,16 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+// ==========================================
+// 💡 핵심 추가 기능: 자동 저장 커스텀 훅
+// ==========================================
+function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (error) {
+      // 사진을 너무 많이 올려 용량이 꽉 찼을 때의 경고창
+      if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        alert('⚠️ 스마트폰 웹 브라우저 저장 용량이 꽉 찼습니다!\n너무 큰 사진이 많이 저장되었을 수 있으니, 앨범이나 휴지통의 사진을 지워주세요.');
+      }
+    }
+  }, [key, storedValue]);
+
+  return [storedValue, setStoredValue];
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('care');
   const [activePet, setActivePet] = useState('vella'); 
 
-  // 🎨 테마 상태
+  // 🎨 테마 상태 (자동 저장)
   const themes = [
     { id: '민트 (기본)', color: '#059669', bg: '#eaf8f5', border: '#a7ecd9', btn: '#10b981' },
     { id: '딸기 핑크', color: '#be185d', bg: '#fce7f3', border: '#fbcfe8', btn: '#ec4899' },
     { id: '라벤더 퍼플', color: '#7e22ce', bg: '#f3e8ff', border: '#e9d5ff', btn: '#a855f7' }
   ];
-  const [themeIdx, setThemeIdx] = useState(0);
+  const [themeIdx, setThemeIdx] = useLocalStorage('nyangi_theme', 0);
   const currentTheme = themes[themeIdx];
 
   const navItems = [
@@ -22,11 +50,12 @@ export default function App() {
     { id: 'create', label: '설정/제작', icon: "⚙️" }
   ];
 
-  // === 1. 냥이 프로필 ===
-  const [pets, setPets] = useState({
+  // === 1. 냥이 프로필 (자동 저장) ===
+  const [pets, setPets] = useLocalStorage('nyangi_pets', {
     vella: { id: 'vella', name: '벨라', gender: '여아 ♀', birth: '2024-01-20', icon: '👑', img: null },
     roy: { id: 'roy', name: '로이', gender: '남아 ♂', birth: '2025-03-15', icon: '🍼', img: null }
   });
+  
   const [showPetModal, setShowPetModal] = useState(false);
   const [editTarget, setEditTarget] = useState('vella');
   const [editPetData, setEditPetData] = useState({ name: '', gender: '', birth: '' });
@@ -47,11 +76,12 @@ export default function App() {
   };
   const savePetEdit = () => { setPets({...pets, [editTarget]: {...pets[editTarget], ...editPetData}}); setShowPetModal(false); };
 
-  // === 2. 케어 항목 ===
-  const [careList, setCareList] = useState({
+  // === 2. 케어 항목 (자동 저장) ===
+  const [careList, setCareList] = useLocalStorage('nyangi_care_list', {
     vella: [{ id: 1, icon: '💧', title: '음수량 측정', unit: 'ml', color: '#3b82f6', bg: '#eff6ff', borderColor: '#bfdbfe' }, { id: 2, icon: '🪮', title: '코트 빗질', unit: '회', color: '#9333ea', bg: '#faf5ff', borderColor: '#e9d5ff' }],
     roy: [{ id: 3, icon: '💊', title: '영양제 챙기기', unit: '알', color: '#e11d48', bg: '#fff1f2', borderColor: '#fecdd3' }]
   });
+  
   const [careModalConfig, setCareModalConfig] = useState({ isOpen: false, mode: 'add', editId: null });
   const [careTitle, setCareTitle] = useState(''); const [careUnit, setCareUnit] = useState('');
 
@@ -65,9 +95,11 @@ export default function App() {
     }
   };
 
-  // === 3. 종합 달력 & 알람 기능 ===
-  const [currentDate, setCurrentDate] = useState(new Date()); const [selectedDate, setSelectedDate] = useState(new Date()); 
-  const [schedules, setSchedules] = useState({}); 
+  // === 3. 종합 달력 & 알람 (자동 저장) ===
+  const [currentDate, setCurrentDate] = useState(new Date()); 
+  const [selectedDate, setSelectedDate] = useState(new Date()); 
+  const [schedules, setSchedules] = useLocalStorage('nyangi_schedules', {}); 
+  
   const [newSchedule, setNewSchedule] = useState('');
   const [newScheduleTime, setNewScheduleTime] = useState('');
 
@@ -87,6 +119,7 @@ export default function App() {
     }
   };
 
+  // 알람 체크 타이머
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -115,13 +148,15 @@ export default function App() {
       });
     }, 10000);
     return () => clearInterval(timer);
-  }, []);
+  }, [setSchedules]);
 
-  // === 4. 지출, 휴지통, 앨범, 설정 ===
-  const [expenses, setExpenses] = useState([]); 
+  // === 4. 지출, 휴지통, 앨범 (자동 저장) ===
+  const [expenses, setExpenses] = useLocalStorage('nyangi_expenses', []); 
   const [expName, setExpName] = useState(''); const [expPrice, setExpPrice] = useState(''); const [expImg, setExpImg] = useState(null); const [expTargetPet, setExpTargetPet] = useState('공통');
-  const [trashItems, setTrashItems] = useState([]); 
-  const [albumPhotos, setAlbumPhotos] = useState([{ id: 1, src: 'https://via.placeholder.com/150/eeeeee/aaaaaa?text=Photo+1' }]); 
+  
+  const [trashItems, setTrashItems] = useLocalStorage('nyangi_trash', []); 
+  const [albumPhotos, setAlbumPhotos] = useLocalStorage('nyangi_album', []); 
+  
   const albumInputRef = useRef(null); 
   const [settingView, setSettingView] = useState(null);
   const pressTimer = useRef(null);
@@ -167,7 +202,6 @@ export default function App() {
     @media (min-width: 481px) { #app-container { box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; } }
     .fade-in { animation: fadeIn 0.2s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 💡 수정 1: 상단 펫 탭 좌우 나란히 배치 강제 적용 */
     .top-pet-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background-color: ${currentTheme.bg}; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; flex-shrink: 0; z-index: 10; gap: 10px; transition: background-color 0.3s; }
     .pet-tabs { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .pet-tabs::-webkit-scrollbar { display: none; }
@@ -312,7 +346,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 2. 종합 달력 (모바일 시간 UI 수정) ================= */}
+        {/* ================= 2. 종합 달력 ================= */}
         {activeTab === 'calendar' && (
           <div className="fade-in">
             <div className="card">
@@ -334,7 +368,6 @@ export default function App() {
             <div className="card">
               <h3 style={{fontSize:'15px', marginBottom:'15px'}}>📝 {selectedDate.getMonth()+1}월 {selectedDate.getDate()}일 일정 등록</h3>
               
-              {/* 💡 수정 2: 가로 공간 부족 방지를 위한 모바일 친화적 상하 스택 폼 */}
               <div style={{display:'flex', flexDirection: 'column', gap:'10px', marginBottom:'15px'}}>
                 <input style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize: '15px'}} placeholder="새로운 일정 내용 입력" value={newSchedule} onChange={e => setNewSchedule(e.target.value)} />
                 <div style={{display: 'flex', gap: '10px'}}>
@@ -404,6 +437,7 @@ export default function App() {
                 + 사진 등록
               </button>
             </div>
+            {albumPhotos.length === 0 && <div className="card" style={{textAlign:'center', color:'#999'}}>등록된 사진이 없습니다.</div>}
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'8px'}}>
               {albumPhotos.map((photo) => (
                 <div 
@@ -458,7 +492,7 @@ export default function App() {
                   </li>
                   <li onClick={() => setSettingView('guide')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>📖 앱 사용 가이드</span> <span>❯</span></li>
                   <li onClick={() => setSettingView('dev')} style={{display:'flex', justifyContent:'space-between', padding:'18px 0', borderBottom:'1px solid #eee', cursor:'pointer'}}><span>💬 개발자 문의</span> <span>❯</span></li>
-                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.6</span></li>
+                  <li style={{display:'flex', justifyContent:'space-between', padding:'18px 0', cursor:'default'}}><span>ℹ️ 앱 버전 정보</span> <span style={{color:'#888', fontSize:'13px'}}>v1.0.8 (자동 저장 탑재)</span></li>
                 </ul>
               </div>
             ) : (
@@ -468,8 +502,8 @@ export default function App() {
                   <span>{settingView === 'guide' ? '사용 가이드' : '개발자 문의'}</span>
                 </div>
                 <div style={{fontSize:'14px', lineHeight:'1.6', color:'#555', paddingBottom:'20px'}}>
-                  {settingView === 'guide' && '✔️ 앨범의 사진을 1초간 꾹~ 누르면 삭제 후 휴지통으로 이동합니다.\n✔️ 달력에서 일정을 등록할 때 시간을 지정하면 알람이 울립니다.\n✔️ 오늘 케어 탭에서 ✏️ 버튼을 눌러 항목을 언제든 수정하세요.'}
-                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.6 (모바일 UI 최적화 완료)'}
+                  {settingView === 'guide' && '✔️ 데이터는 스마트폰에 자동 저장됩니다.\n✔️ 앨범의 사진을 1초간 꾹~ 누르면 휴지통으로 이동합니다.\n✔️ 달력에서 시간을 지정하면 팝업 알람이 울립니다.\n✔️ 오늘 케어 탭에서 ✏️ 버튼을 눌러 항목을 언제든 수정하세요.'}
+                  {settingView === 'dev' && '이메일: dev@nyangi.app\n버전: v1.0.8 (자동저장 및 알람 완벽 지원)'}
                 </div>
               </div>
             )}
@@ -477,7 +511,7 @@ export default function App() {
         )}
       </main>
 
-      {/* 🐾 하단 네비게이션 */}
+      {/* 🐾 커스텀 하단 네비게이션 */}
       <nav>
         {navItems.map(item => (
           <button key={item.id} className={`nav-btn ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}>
